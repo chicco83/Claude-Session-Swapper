@@ -1,6 +1,11 @@
 # Changelog — Sposta-SessioniClaude
 
-**Versione corrente:** 1.3 — 2026-10-26 20:00 (Europe/Rome)
+**Versione corrente:** 1.4 — 2026-10-26 19:58 (Europe/Rome)
+
+## v1.4 — 2026-10-26 19:58
+- **Tasto destro → "Esegui con PowerShell":** lo script si rilancia da solo in modalità STA (necessaria a WPF; PowerShell 7 non lo è di default) con `-ExecutionPolicy Bypass` solo per il proprio processo; un `trap` mostra gli errori e aspetta Invio invece di chiudere la finestra di colpo.
+- **Verificato:** parser PowerShell 0 errori. **Non provato:** l'avvio da tasto destro (non lanciabile da una sessione Claude). Se Windows blocca il file scaricato da internet: tasto destro → Proprietà → Sblocca.
+- **Rollback:** `Sposta-SessioniClaude_v1.3_2026-10-26_1943.ps1` (nel repo ignorata da git dopo questa versione).
 
 ## v1.3 — 2026-10-26 19:43
 - **Colori per progetto:** le righe con la stessa cartella di lavoro hanno lo stesso colore (palette di 12, assegnata in ordine alfabetico sull'unione delle due liste) in entrambi i pannelli.

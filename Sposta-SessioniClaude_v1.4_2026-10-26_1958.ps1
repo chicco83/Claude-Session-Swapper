@@ -1,6 +1,10 @@
 ﻿# =============================================================================
-# Sposta-SessioniClaude_v1.3_2026-10-26_1943.ps1
-# Versione: 1.3 - 2026-10-26 19:43 (Europe/Rome)
+# Sposta-SessioniClaude_v1.4_2026-10-26_1958.ps1
+# Versione: 1.4 - 2026-10-26 19:58 (Europe/Rome)
+# v1.4: funziona con tasto destro -> "Esegui con PowerShell": si rilancia da solo in modalita' STA (serve a WPF) e con
+#       criteri di esecuzione Bypass solo per il proprio processo; gli errori non fanno piu' chiudere la finestra di
+#       PowerShell di colpo (messaggio + attesa di Invio). Funziona anche con PowerShell 7 su Windows.
+# (v1.3 2026-10-26 19:43: colori per progetto, righe allineate, account portabili)
 # v1.3: (a) righe colorate per progetto (stessa cartella = stesso colore in entrambi i pannelli); le sessioni presenti
 #       in tutti e due gli account stanno sulla stessa riga nei due pannelli (riga vuota grigia dove manca), i pannelli
 #       scorrono insieme; ordine: per progetto, poi per ultima attivita'; clic sulle intestazioni disattivato.
@@ -37,12 +41,12 @@
 #   - ogni operazione e' scritta in un registro CSV (delimitatore ';'); -Ripristina <registro> la annulla.
 #
 # Uso (PowerShell, utente corrente, senza admin):
-#   .\Sposta-SessioniClaude_v1.3_2026-10-26_1943.ps1                       # FINESTRA: due pannelli (account per lato), frecce per spostare/copiare
+#   .\Sposta-SessioniClaude_v1.4_2026-10-26_1958.ps1                       # FINESTRA: due pannelli (account per lato), frecce per spostare/copiare
 #   (oppure tasto destro sul file -> Esegui con PowerShell)
-#   .\Sposta-SessioniClaude_v1.3_2026-10-26_1943.ps1 -Da personale -A lavoro
-#   .\Sposta-SessioniClaude_v1.3_2026-10-26_1943.ps1 -Da lavoro -A personale -Modalita Copia -Riavvia
-#   .\Sposta-SessioniClaude_v1.3_2026-10-26_1943.ps1 -Da personale -A lavoro -Sessioni 0c7c0e04-bcde-4f39-acc0-bc4cf6eea68a
-#   .\Sposta-SessioniClaude_v1.3_2026-10-26_1943.ps1 -Ripristina "<cartella tool>\registri\sposta_20261026_1620.csv"
+#   .\Sposta-SessioniClaude_v1.4_2026-10-26_1958.ps1 -Da personale -A lavoro
+#   .\Sposta-SessioniClaude_v1.4_2026-10-26_1958.ps1 -Da lavoro -A personale -Modalita Copia -Riavvia
+#   .\Sposta-SessioniClaude_v1.4_2026-10-26_1958.ps1 -Da personale -A lavoro -Sessioni 0c7c0e04-bcde-4f39-acc0-bc4cf6eea68a
+#   .\Sposta-SessioniClaude_v1.4_2026-10-26_1958.ps1 -Ripristina "<cartella tool>\registri\sposta_20261026_1620.csv"
 #   -Prova  : mostra cosa farebbe senza modificare nulla
 # =============================================================================
 [CmdletBinding()]
@@ -58,10 +62,30 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+# --- v1.4: avvio da tasto destro "Esegui con PowerShell" ----------------------------------------------------
+# 1) Errori: senza questo la finestra di PowerShell si chiude subito e non si legge nulla. Tutto il resto dello script
+#    e' al livello principale: un errore bloccante arriva qui, lo mostra e aspetta Invio.
+trap {
+    Write-Host ""
+    Write-Host "ERRORE: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray
+    Read-Host "Premere Invio per chiudere"
+    exit 1
+}
+# 2) La finestra WPF richiede un thread STA (PowerShell 5.1 e' STA di default, PowerShell 7 no): se serve, lo script si
+#    rilancia da solo con -STA e criteri Bypass limitati a quel processo (nessuna modifica permanente al PC).
+if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui) -and
+    [Threading.Thread]::CurrentThread.GetApartmentState() -ne 'STA') {
+    $exe = (Get-Process -Id $PID).Path
+    & $exe -STA -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath
+    exit $LASTEXITCODE
+}
 # 2026-10-26 v1.0: $Version = "1.0"
 # 2026-10-26 v1.1: $Version = "1.1"
 # 2026-10-26 v1.2: $Version = "1.2"
-$Version = "1.3"
+# 2026-10-26 v1.3: $Version = "1.3"
+$Version = "1.4"
 
 # --- Configurazione (v1.3): UUID account -> etichetta, letta da sposta-config.json accanto allo script ---
 # 2026-10-26 v1.2: etichette scritte nel codice ($Etichette = @{ '<uuid>' = 'personale'; '<uuid>' = 'lavoro' }); sostituite
