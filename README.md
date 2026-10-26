@@ -55,6 +55,20 @@ powershell -ExecutionPolicy Bypass -File $t -Ripristina ".\registri\sposta_<data
 - Non tenere la stessa sessione aperta con due account insieme (app e terminale).
 - La modalità Sposta/Copia chiude l'app desktop (prima in modo pulito, poi forzato) e la riapre se vuoi.
 
+## Problemi comuni
+
+| Messaggio o sintomo | Causa | Cosa fare |
+|---|---|---|
+| "Cartella claude-code-sessions dell'app desktop non trovata" | app non installata o percorso diverso | verifica `%LOCALAPPDATA%\Claude-Data` e `%APPDATA%\Claude` |
+| "I due lati mostrano lo stesso account" / un solo account | il secondo account non è mai stato aperto nell'app su questo PC | apri l'app una volta con l'altro account, poi **Aggiorna** |
+| "non ha ancora una cartella organizzazione" | account mai aperto fino in fondo | apri l'app con quell'account |
+| gli account si chiamano `account-541e1365` | nessun nome salvato | **Rinomina account...** |
+| la sessione non compare nell'altro account | formato delle schede cambiato dopo un aggiornamento dell'app | **Ripristina...** e rifai la prova con una sessione |
+| l'app non si chiude o non si riapre | nome del processo o del menu Start diverso | chiudila/riaprila a mano |
+| la finestra non si apre | errore all'avvio, la console è nascosta | lancia con `-MostraConsole` |
+
+Limiti: solo Windows; vede solo gli account dell'utente Windows corrente; con più organizzazioni nello stesso account la sessione va in quella con più schede.
+
 ## File
 
 | File | Contenuto |
@@ -123,6 +137,20 @@ powershell -ExecutionPolicy Bypass -File $t -Ripristina ".\registri\sposta_<date
 - When you resume a session with the other account the app shows "can't use thinking from another organization": that is normal, the first reply costs more tokens.
 - Do not keep the same session open with two accounts at once (app and terminal).
 - Move/Copy closes the desktop app (gracefully first, forced after 15 s) and can reopen it afterwards.
+
+### Common problems
+
+| Message or symptom | Cause | What to do |
+|---|---|---|
+| "Cartella claude-code-sessions dell'app desktop non trovata" (sessions folder not found) | app not installed or different path | check `%LOCALAPPDATA%\Claude-Data` and `%APPDATA%\Claude` |
+| "I due lati mostrano lo stesso account" / only one account | the second account was never opened in the app on this PC | open the app once with the other account, then **Aggiorna** (Refresh) |
+| "non ha ancora una cartella organizzazione" (no organization folder yet) | account never fully opened | open the app with that account |
+| accounts are named `account-541e1365` | no saved name | **Rinomina account...** |
+| the session does not show up in the other account | card format changed after an app update | **Ripristina...** and retry with one session |
+| the app does not close or reopen | different process or Start menu name | close/reopen it by hand |
+| the window does not open | startup error, the console is hidden | run with `-MostraConsole` |
+
+Limits: Windows only; sees only the accounts of the current Windows user; with several organizations in one account the session goes to the one with the most cards.
 
 ### Files
 

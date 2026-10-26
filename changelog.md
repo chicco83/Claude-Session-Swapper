@@ -2,6 +2,9 @@
 
 **Versione corrente:** 1.7 — 2026-10-26 20:04 (Europe/Rome)
 
+## Documentazione — 2026-10-26 20:20
+- README: aggiunta la sezione "Problemi comuni" (italiano e inglese). Confermato dall'utente: Sposta/Copia funziona e l'app Claude si riapre correttamente dopo l'operazione (nello stesso PC).
+
 ## v1.7 — 2026-10-26 20:04
 - **Console nascosta:** lanciando senza parametri lo script si rilancia in un processo PowerShell nascosto (`-WindowStyle Hidden`, STA, Bypass solo per quel processo) e chiude subito la console visibile (può restare un lampo all'avvio). Gli errori escono in una finestra di messaggio. `-MostraConsole` la lascia visibile per la diagnosi. La riga di comando non cambia.
 - Provato dall'utente sulla v1.6: scorrimento sincronizzato e allineamento funzionano anche con righe di altezza diversa.
