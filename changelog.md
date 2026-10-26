@@ -1,6 +1,11 @@
 # Changelog — Sposta-SessioniClaude
 
-**Versione corrente:** 1.5 — 2026-10-26 20:00 (Europe/Rome)
+**Versione corrente:** 1.6 — 2026-10-26 20:01 (Europe/Rome)
+
+## v1.6 — 2026-10-26 20:01
+- **Stile cartella:** sopra le sessioni di ogni progetto una riga di intestazione (icona cartella + nome della cartella di lavoro, grassetto, colore del progetto più scuro, percorso completo nella colonna Cartella) e una riga di spazio tra un progetto e il successivo. Identiche nei due pannelli, quindi l'allineamento resta; non selezionabili; compaiono solo se il progetto ha sessioni visibili col filtro.
+- **Verificato:** parser 0 errori. **Non provato:** l'aspetto a video (colore delle intestazioni, altezza dello spazio, scorrimento con le righe di altezza diversa).
+- **Rollback:** `Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1`.
 
 ## v1.5 — 2026-10-26 20:00
 - **Corretto il colore per progetto**, che con la v1.4 non compariva (allineamento invece funzionante, provato dall'utente). Ipotesi sulla causa: il Binding XAML `Background="{Binding Colore}"` su oggetti PowerShell non convertiva il testo in pennello. Ora il colore è assegnato in codice a ogni riga (evento `LoadingRow`, funzione `Set-StileRiga`), come l'esclusione delle righe vuote dal clic.

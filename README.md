@@ -25,7 +25,7 @@ Una sessione compare nell'app solo nell'account che ha la sua "scheda" (`local_<
 2. Tasto destro sul file → **Esegui con PowerShell** (oppure da una finestra PowerShell normale; **non** da una sessione Claude: lo script chiude l'app desktop). Se il file arriva da internet: tasto destro → Proprietà → **Sblocca**. Da PowerShell:
 
    ```powershell
-   powershell -ExecutionPolicy Bypass -File .\Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1
+   powershell -ExecutionPolicy Bypass -File .\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1
    ```
 
 3. A sinistra e a destra scegli i due account (qualsiasi coppia: sono rilevati da soli). Con **Rinomina account...** dai loro un nome (es. `personale`, `lavoro`): viene salvato in `sposta-config.json` accanto allo script (vedi `sposta-config.example.json`). Senza nome compaiono come `account-<8 caratteri>`.
@@ -33,14 +33,14 @@ Una sessione compare nell'app solo nell'account che ha la sua "scheda" (`local_<
 
 ### Colori e allineamento
 
-- Le righe dello **stesso progetto** (stessa cartella di lavoro) hanno lo **stesso colore** in entrambi i pannelli.
+- Le righe dello **stesso progetto** (stessa cartella di lavoro) hanno lo **stesso colore** in entrambi i pannelli, con una riga di intestazione "cartella" sopra e uno spazio tra un progetto e l'altro.
 - Le sessioni presenti in **tutti e due** gli account stanno sulla **stessa riga**; dove manca c'è una riga grigia vuota. I pannelli scorrono insieme.
 - Ordine: per progetto (il più recente prima), poi per ultima attività. Le intestazioni non ordinano (romperebbe l'allineamento).
 
 ### Riga di comando
 
 ```powershell
-$t = ".\Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1"
+$t = ".\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1"
 powershell -ExecutionPolicy Bypass -File $t -Da personale -A lavoro -Prova
 powershell -ExecutionPolicy Bypass -File $t -Da lavoro -A personale -Modalita Copia -Riavvia
 powershell -ExecutionPolicy Bypass -File $t -Ripristina ".\registri\sposta_<data-ora>.csv"
@@ -91,7 +91,7 @@ A session shows up in the app only under the account that owns its "card" (`loca
 2. Right-click the file → **Run with PowerShell** (or use a regular PowerShell window; **not** from a Claude session: the script closes the desktop app). If the file was downloaded, right-click → Properties → **Unblock**. From PowerShell:
 
    ```powershell
-   powershell -ExecutionPolicy Bypass -File .\Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1
+   powershell -ExecutionPolicy Bypass -File .\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1
    ```
 
 3. Pick the two accounts in the left and right panes (any pair: they are detected automatically). Use **Rinomina account...** (Rename account) to give them names (e.g. `personal`, `work`): they are saved in `sposta-config.json` next to the script (see `sposta-config.example.json`). Without a name they show as `account-<8 chars>`.
@@ -101,14 +101,14 @@ The UI labels are in Italian.
 
 #### Colors and alignment
 
-- Rows of the **same project** (same working folder) get the **same color** in both panes.
+- Rows of the **same project** (same working folder) get the **same color** in both panes, with a "folder" header row above and a gap between projects.
 - Sessions present in **both** accounts sit on the **same row**; a grey blank row fills the gap on the other side. The panes scroll together.
 - Order: by project (most recent first), then by last activity. Column headers do not sort (it would break the alignment).
 
 #### Command line
 
 ```powershell
-$t = ".\Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1"
+$t = ".\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1"
 powershell -ExecutionPolicy Bypass -File $t -Da personal -A work -Prova          # -Prova = dry run
 powershell -ExecutionPolicy Bypass -File $t -Da work -A personal -Modalita Copia -Riavvia
 powershell -ExecutionPolicy Bypass -File $t -Ripristina ".\registri\sposta_<date-time>.csv"

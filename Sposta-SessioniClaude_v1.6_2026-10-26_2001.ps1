@@ -1,6 +1,10 @@
 ﻿# =============================================================================
-# Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1
-# Versione: 1.5 - 2026-10-26 20:00 (Europe/Rome)
+# Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1
+# Versione: 1.6 - 2026-10-26 20:01 (Europe/Rome)
+# v1.6: stile "cartella": sopra le sessioni di ogni progetto c'e' una riga di intestazione (icona cartella + nome della
+#       cartella di lavoro, in grassetto, colore del progetto piu' scuro) e tra un progetto e il successivo una riga di
+#       spazio. Intestazioni e spazi sono uguali nei due pannelli (l'allineamento resta) e non sono selezionabili.
+# (v1.5 2026-10-26 20:00: colore delle righe assegnato in codice)
 # v1.5: corretto il colore delle righe per progetto (con la v1.4 non compariva): il colore non passa piu' da un
 #       Binding XAML (con gli oggetti PowerShell la conversione testo -> pennello falliva in silenzio) ma e' assegnato in
 #       codice a ogni riga quando la griglia la crea (evento LoadingRow). Stessa cosa per le righe vuote non cliccabili.
@@ -45,12 +49,12 @@
 #   - ogni operazione e' scritta in un registro CSV (delimitatore ';'); -Ripristina <registro> la annulla.
 #
 # Uso (PowerShell, utente corrente, senza admin):
-#   .\Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1                       # FINESTRA: due pannelli (account per lato), frecce per spostare/copiare
+#   .\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1                       # FINESTRA: due pannelli (account per lato), frecce per spostare/copiare
 #   (oppure tasto destro sul file -> Esegui con PowerShell)
-#   .\Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1 -Da personale -A lavoro
-#   .\Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1 -Da lavoro -A personale -Modalita Copia -Riavvia
-#   .\Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1 -Da personale -A lavoro -Sessioni 0c7c0e04-bcde-4f39-acc0-bc4cf6eea68a
-#   .\Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1 -Ripristina "<cartella tool>\registri\sposta_20261026_1620.csv"
+#   .\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1 -Da personale -A lavoro
+#   .\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1 -Da lavoro -A personale -Modalita Copia -Riavvia
+#   .\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1 -Da personale -A lavoro -Sessioni 0c7c0e04-bcde-4f39-acc0-bc4cf6eea68a
+#   .\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1 -Ripristina "<cartella tool>\registri\sposta_20261026_1620.csv"
 #   -Prova  : mostra cosa farebbe senza modificare nulla
 # =============================================================================
 [CmdletBinding()]
@@ -90,7 +94,8 @@ if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui) -and
 # 2026-10-26 v1.2: $Version = "1.2"
 # 2026-10-26 v1.3: $Version = "1.3"
 # 2026-10-26 v1.4: $Version = "1.4"
-$Version = "1.5"
+# 2026-10-26 v1.5: $Version = "1.5"
+$Version = "1.6"
 
 # --- Configurazione (v1.3): UUID account -> etichetta, letta da sposta-config.json accanto allo script ---
 # 2026-10-26 v1.2: etichette scritte nel codice ($Etichette = @{ '<uuid>' = 'personale'; '<uuid>' = 'lavoro' }); sostituite
@@ -412,8 +417,25 @@ function Update-Stato {
 # v1.3: schede di entrambi i lati allineate. Colore = progetto (cartella), uguale nei due pannelli; una sessione presente
 # in tutti e due gli account occupa la stessa riga (sull'altro lato resta una riga vuota grigia se assente).
 $Palette = @('#DCEBFA','#E3F4D7','#FBE5CF','#EBDDF5','#FFF4C2','#D5F1EF','#F8D9E1','#E4E8C8','#D9DEF7','#F2DFD0','#CFEBDD','#EFD5EC')
-function New-RigaVuota([string]$id) {
-    [pscustomobject]@{ Titolo = ''; UltimaTesto = ''; Altro = ''; Cartella = ''; Vuota = $true; Colore = '#EEEEEE'; Id = $id; Archiviata = $false }
+function New-RigaVuota([string]$id, [string]$gruppo) {
+    [pscustomobject]@{ Titolo = ''; UltimaTesto = ''; Altro = ''; Cartella = ''; Vuota = $true; Tipo = 'vuota'; Gruppo = $gruppo; Colore = '#EEEEEE'; Id = $id; Archiviata = $false }
+}
+# v1.6: riga di intestazione di un progetto (stile cartella) e riga di spazio tra due progetti; non selezionabili (Vuota)
+$script:ColoriProgetto = @{}
+function Get-ColoreScuro([string]$hex) {
+    $c = [Windows.Media.ColorConverter]::ConvertFromString($hex)
+    $f = 0.82
+    return ('#{0:X2}{1:X2}{2:X2}' -f [int]($c.R * $f), [int]($c.G * $f), [int]($c.B * $f))
+}
+function New-RigaIntestazione([string]$gruppo) {
+    $nome = if ($gruppo) { Split-Path $gruppo -Leaf } else { '' }
+    if (-not $nome) { $nome = if ($gruppo) { $gruppo } else { '(senza cartella)' } }
+    $col = if ($gruppo -and $script:ColoriProgetto.ContainsKey($gruppo)) { Get-ColoreScuro $script:ColoriProgetto[$gruppo] } else { '#CCCCCC' }
+    [pscustomobject]@{ Titolo = "$([char]::ConvertFromUtf32(0x1F4C1)) $nome"; UltimaTesto = ''; Altro = ''; Cartella = $gruppo; Vuota = $true
+                       Tipo = 'intestazione'; Gruppo = $gruppo; Colore = $col; Id = ''; Archiviata = $false }
+}
+function New-RigaSpazio {
+    [pscustomobject]@{ Titolo = ''; UltimaTesto = ''; Altro = ''; Cartella = ''; Vuota = $true; Tipo = 'spazio'; Gruppo = ''; Colore = '#FFFFFF'; Id = ''; Archiviata = $false }
 }
 function Update-Allineato {
     $dati = @{ L = @{}; R = @{} }
@@ -426,6 +448,7 @@ function Update-Allineato {
     # un colore per cartella, assegnato in ordine alfabetico sull'unione delle due liste (stesso colore nei due pannelli)
     $cart = @(@($dati.L.Values) + @($dati.R.Values) | ForEach-Object { [string]$_.Cartella } | Where-Object { $_ } | Sort-Object -Unique)
     $mappa = @{}; for ($n = 0; $n -lt $cart.Count; $n++) { $mappa[$cart[$n]] = $Palette[$n % $Palette.Count] }
+    $script:ColoriProgetto = $mappa
     # unione delle sessioni, ordinate per progetto (il piu' recente per primo) e poi per ultima attivita' decrescente
     $tutte = @{}
     foreach ($k in 'L', 'R') { foreach ($id in $dati[$k].Keys) {
@@ -447,12 +470,12 @@ function Update-Allineato {
         $righe = @(); $reali = @()
         foreach ($id in $ordine) {
             $x = $dati[$k][$id]
-            if (-not $x) { $righe += New-RigaVuota $id; continue }
+            if (-not $x) { $righe += New-RigaVuota $id ([string]$tutte[$id].Cartella); continue }
             $ult = if ($x.UltimaAttivita) { $x.UltimaAttivita.ToString('dd/MM/yyyy HH:mm') } else { '' }
             $altro = if ($dati[$o].ContainsKey($id) -and -not $stessi) { 'si' } else { '' }
             $col = if ($x.Cartella) { $mappa[[string]$x.Cartella] } else { '#FFFFFF' }
             $r = $x | Select-Object *, @{ n = 'UltimaTesto'; e = { $ult } }, @{ n = 'Altro'; e = { $altro } },
-                 @{ n = 'Vuota'; e = { $false } }, @{ n = 'Colore'; e = { $col } }
+                 @{ n = 'Vuota'; e = { $false } }, @{ n = 'Tipo'; e = { 'sessione' } }, @{ n = 'Gruppo'; e = { [string]$x.Cartella } }, @{ n = 'Colore'; e = { $col } }
             $reali += $r; $righe += $r
         }
         $Lati[$k].Tutte = $reali
@@ -474,8 +497,20 @@ function Apply-Filtro([string]$k) {
         if ($r.Vuota) {
             if ($okAltro) { $v += $r }                                   # l'altro lato la mostra: riga vuota per l'allineamento
         } elseif (Test-Passa $r $q) { $v += $r; $n++ }
-        elseif ($okAltro) { $v += New-RigaVuota $r.Id }
+        elseif ($okAltro) { $v += New-RigaVuota $r.Id ([string]$r.Gruppo) }
     }
+    # v1.6: intestazione (cartella) prima del primo elemento di ogni progetto e riga di spazio tra i progetti.
+    # Le righe visibili sono le stesse nei due lati, quindi anche intestazioni e spazi cadono sulle stesse righe.
+    $fin = @(); $gPrec = $null; $primo = $true
+    foreach ($r in $v) {
+        if ($primo -or $r.Gruppo -ne $gPrec) {
+            if (-not $primo) { $fin += New-RigaSpazio }
+            $fin += New-RigaIntestazione ([string]$r.Gruppo)
+            $gPrec = $r.Gruppo; $primo = $false
+        }
+        $fin += $r
+    }
+    $v = $fin
     $Lati[$k].dg.ItemsSource = $v
     $Lati[$k].Mostrate = $n
     Update-Conteggio $k
@@ -491,6 +526,9 @@ function Set-StileRiga($riga) {
         $riga.Background = $b
     } catch { $riga.Background = [Windows.Media.Brushes]::White }
     $riga.IsHitTestVisible = -not [bool]$it.Vuota
+    # v1.6: intestazione in grassetto, riga di spazio piu' bassa
+    $riga.FontWeight = if ($it.Tipo -eq 'intestazione') { [Windows.FontWeights]::Bold } else { [Windows.FontWeights]::Normal }
+    $riga.Height = if ($it.Tipo -eq 'spazio') { 10 } else { 22 }
 }
 function Update-Conteggio([string]$k) {
     $sel = @($Lati[$k].dg.SelectedItems | Where-Object { -not $_.Vuota }).Count
