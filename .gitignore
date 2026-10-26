@@ -1,0 +1,13 @@
+# Dati personali dell'utente (UUID account, percorsi): mai online
+sposta-config.json
+registri/
+*.csv
+
+# Documenti di lavoro interni (contengono UUID e percorsi personali)
+CLAUDE.md
+context_*.md
+manual_*.md
+
+# Versioni precedenti dello script: online resta solo l'ultima
+Sposta-SessioniClaude_v1.1_*.ps1
+Sposta-SessioniClaude_v1.2_*.ps1
