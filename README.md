@@ -25,11 +25,12 @@ Una sessione compare nell'app solo nell'account che ha la sua "scheda" (`local_<
 2. Tasto destro sul file → **Esegui con PowerShell** (oppure da una finestra PowerShell normale; **non** da una sessione Claude: lo script chiude l'app desktop). Se il file arriva da internet: tasto destro → Proprietà → **Sblocca**. Da PowerShell:
 
    ```powershell
-   powershell -ExecutionPolicy Bypass -File .\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1
+   powershell -ExecutionPolicy Bypass -File .\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1
    ```
 
 3. A sinistra e a destra scegli i due account (qualsiasi coppia: sono rilevati da soli). Con **Rinomina account...** dai loro un nome (es. `personale`, `lavoro`): viene salvato in `sposta-config.json` accanto allo script (vedi `sposta-config.example.json`). Senza nome compaiono come `account-<8 caratteri>`.
-4. Seleziona le sessioni e premi **→** o **←**. Consiglio: la prima volta spunta **Solo anteprima**.
+4. La finestra di PowerShell resta nascosta dietro alla finestra grafica (per vederla: parametro `-MostraConsole`).
+5. Seleziona le sessioni e premi **→** o **←**. Consiglio: la prima volta spunta **Solo anteprima**.
 
 ### Colori e allineamento
 
@@ -40,7 +41,7 @@ Una sessione compare nell'app solo nell'account che ha la sua "scheda" (`local_<
 ### Riga di comando
 
 ```powershell
-$t = ".\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1"
+$t = ".\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1"
 powershell -ExecutionPolicy Bypass -File $t -Da personale -A lavoro -Prova
 powershell -ExecutionPolicy Bypass -File $t -Da lavoro -A personale -Modalita Copia -Riavvia
 powershell -ExecutionPolicy Bypass -File $t -Ripristina ".\registri\sposta_<data-ora>.csv"
@@ -91,11 +92,12 @@ A session shows up in the app only under the account that owns its "card" (`loca
 2. Right-click the file → **Run with PowerShell** (or use a regular PowerShell window; **not** from a Claude session: the script closes the desktop app). If the file was downloaded, right-click → Properties → **Unblock**. From PowerShell:
 
    ```powershell
-   powershell -ExecutionPolicy Bypass -File .\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1
+   powershell -ExecutionPolicy Bypass -File .\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1
    ```
 
 3. Pick the two accounts in the left and right panes (any pair: they are detected automatically). Use **Rinomina account...** (Rename account) to give them names (e.g. `personal`, `work`): they are saved in `sposta-config.json` next to the script (see `sposta-config.example.json`). Without a name they show as `account-<8 chars>`.
-4. Select sessions and press **→** or **←**. Tip: tick **Solo anteprima** (preview only) the first time.
+4. The PowerShell window stays hidden behind the GUI (to see it: `-MostraConsole`).
+5. Select sessions and press **→** or **←**. Tip: tick **Solo anteprima** (preview only) the first time.
 
 The UI labels are in Italian.
 
@@ -108,7 +110,7 @@ The UI labels are in Italian.
 #### Command line
 
 ```powershell
-$t = ".\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1"
+$t = ".\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1"
 powershell -ExecutionPolicy Bypass -File $t -Da personal -A work -Prova          # -Prova = dry run
 powershell -ExecutionPolicy Bypass -File $t -Da work -A personal -Modalita Copia -Riavvia
 powershell -ExecutionPolicy Bypass -File $t -Ripristina ".\registri\sposta_<date-time>.csv"

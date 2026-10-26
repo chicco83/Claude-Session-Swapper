@@ -1,6 +1,12 @@
 # Changelog — Sposta-SessioniClaude
 
-**Versione corrente:** 1.6 — 2026-10-26 20:01 (Europe/Rome)
+**Versione corrente:** 1.7 — 2026-10-26 20:04 (Europe/Rome)
+
+## v1.7 — 2026-10-26 20:04
+- **Console nascosta:** lanciando senza parametri lo script si rilancia in un processo PowerShell nascosto (`-WindowStyle Hidden`, STA, Bypass solo per quel processo) e chiude subito la console visibile (può restare un lampo all'avvio). Gli errori escono in una finestra di messaggio. `-MostraConsole` la lascia visibile per la diagnosi. La riga di comando non cambia.
+- Provato dall'utente sulla v1.6: scorrimento sincronizzato e allineamento funzionano anche con righe di altezza diversa.
+- **Verificato:** parser 0 errori. **Non provato:** il rilancio nascosto (con Windows Terminal come terminale predefinito la scheda iniziale dovrebbe chiudersi da sola).
+- **Rollback:** `Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1`.
 
 ## v1.6 — 2026-10-26 20:01
 - **Stile cartella:** sopra le sessioni di ogni progetto una riga di intestazione (icona cartella + nome della cartella di lavoro, grassetto, colore del progetto più scuro, percorso completo nella colonna Cartella) e una riga di spazio tra un progetto e il successivo. Identiche nei due pannelli, quindi l'allineamento resta; non selezionabili; compaiono solo se il progetto ha sessioni visibili col filtro.

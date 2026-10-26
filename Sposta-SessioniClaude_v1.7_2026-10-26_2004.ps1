@@ -1,6 +1,11 @@
 ﻿# =============================================================================
-# Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1
-# Versione: 1.6 - 2026-10-26 20:01 (Europe/Rome)
+# Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1
+# Versione: 1.7 - 2026-10-26 20:04 (Europe/Rome)
+# v1.7: la finestra di PowerShell resta nascosta dietro alla finestra grafica: lanciando senza parametri lo script si
+#       rilancia da solo in un processo PowerShell nascosto (-WindowStyle Hidden) e chiude subito quello visibile.
+#       Gli errori, non potendo piu' stare nella console, escono in una finestra di messaggio. Per vedere la console
+#       (diagnosi): parametro -MostraConsole. La riga di comando (-Da, -A, ...) non cambia.
+# (v1.6 2026-10-26 20:01: intestazioni stile cartella e spazio tra i progetti)
 # v1.6: stile "cartella": sopra le sessioni di ogni progetto c'e' una riga di intestazione (icona cartella + nome della
 #       cartella di lavoro, in grassetto, colore del progetto piu' scuro) e tra un progetto e il successivo una riga di
 #       spazio. Intestazioni e spazi sono uguali nei due pannelli (l'allineamento resta) e non sono selezionabili.
@@ -49,12 +54,12 @@
 #   - ogni operazione e' scritta in un registro CSV (delimitatore ';'); -Ripristina <registro> la annulla.
 #
 # Uso (PowerShell, utente corrente, senza admin):
-#   .\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1                       # FINESTRA: due pannelli (account per lato), frecce per spostare/copiare
+#   .\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1                       # FINESTRA: due pannelli (account per lato), frecce per spostare/copiare
 #   (oppure tasto destro sul file -> Esegui con PowerShell)
-#   .\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1 -Da personale -A lavoro
-#   .\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1 -Da lavoro -A personale -Modalita Copia -Riavvia
-#   .\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1 -Da personale -A lavoro -Sessioni 0c7c0e04-bcde-4f39-acc0-bc4cf6eea68a
-#   .\Sposta-SessioniClaude_v1.6_2026-10-26_2001.ps1 -Ripristina "<cartella tool>\registri\sposta_20261026_1620.csv"
+#   .\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1 -Da personale -A lavoro
+#   .\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1 -Da lavoro -A personale -Modalita Copia -Riavvia
+#   .\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1 -Da personale -A lavoro -Sessioni 0c7c0e04-bcde-4f39-acc0-bc4cf6eea68a
+#   .\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1 -Ripristina "<cartella tool>\registri\sposta_20261026_1620.csv"
 #   -Prova  : mostra cosa farebbe senza modificare nulla
 # =============================================================================
 [CmdletBinding()]
@@ -66,28 +71,42 @@ param(
     [switch]$Riavvia,                                  # riapre l'app desktop alla fine
     [switch]$Prova,                                    # nessuna modifica, solo elenco delle azioni
     [string]$Ripristina = "",                          # registro CSV di un'esecuzione da annullare
-    [switch]$NoGui                                     # v1.1: riga di comando anche senza altri parametri
+    [switch]$NoGui,                                    # v1.1: riga di comando anche senza altri parametri
+    [switch]$MostraConsole                             # v1.7: non nascondere la finestra di PowerShell (diagnosi)
 )
 
 $ErrorActionPreference = 'Stop'
 
-# --- v1.4: avvio da tasto destro "Esegui con PowerShell" ----------------------------------------------------
-# 1) Errori: senza questo la finestra di PowerShell si chiude subito e non si legge nulla. Tutto il resto dello script
-#    e' al livello principale: un errore bloccante arriva qui, lo mostra e aspetta Invio.
+# --- v1.4/v1.7: avvio da tasto destro "Esegui con PowerShell" ------------------------------------------------
+# 1) Errori: tutto lo script e' al livello principale, un errore bloccante arriva qui. Con la console visibile lo scrive
+#    e aspetta Invio; con la console nascosta (v1.7) lo mostra in una finestra di messaggio.
 trap {
-    Write-Host ""
-    Write-Host "ERRORE: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray
-    Read-Host "Premere Invio per chiudere"
+    $msg = "$($_.Exception.Message)`n`n$($_.ScriptStackTrace)"
+    if ($env:SPOSTA_NASCOSTA) {
+        try { Add-Type -AssemblyName PresentationFramework; [void][Windows.MessageBox]::Show($msg, "Sposta sessioni Claude - errore") } catch {}
+    } else {
+        Write-Host ""
+        Write-Host "ERRORE: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray
+        Read-Host "Premere Invio per chiudere"
+    }
     exit 1
 }
-# 2) La finestra WPF richiede un thread STA (PowerShell 5.1 e' STA di default, PowerShell 7 no): se serve, lo script si
-#    rilancia da solo con -STA e criteri Bypass limitati a quel processo (nessuna modifica permanente al PC).
-if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui) -and
-    [Threading.Thread]::CurrentThread.GetApartmentState() -ne 'STA') {
+# 2) Finestra grafica (nessun parametro operativo): lo script si rilancia in un processo PowerShell NASCOSTO, in modalita'
+#    STA (richiesta da WPF) e con criteri Bypass limitati a quel processo (nessuna modifica permanente al PC), poi chiude
+#    subito la console visibile. Con -MostraConsole il processo resta visibile.
+#    2026-10-26 v1.4: rilancio solo se il thread non era STA, console sempre visibile.
+if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui) -and -not $env:SPOSTA_FIGLIO) {
     $exe = (Get-Process -Id $PID).Path
-    & $exe -STA -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath
-    exit $LASTEXITCODE
+    $argomenti = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"")
+    $env:SPOSTA_FIGLIO = '1'                            # ereditata dal figlio: evita il rilancio infinito
+    if ($MostraConsole) {
+        & $exe @argomenti -MostraConsole
+        exit $LASTEXITCODE
+    }
+    $env:SPOSTA_NASCOSTA = '1'                          # il figlio sa di non avere console: errori in finestra di messaggio
+    Start-Process -FilePath $exe -ArgumentList $argomenti -WindowStyle Hidden
+    exit 0
 }
 # 2026-10-26 v1.0: $Version = "1.0"
 # 2026-10-26 v1.1: $Version = "1.1"
@@ -95,7 +114,8 @@ if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui) -and
 # 2026-10-26 v1.3: $Version = "1.3"
 # 2026-10-26 v1.4: $Version = "1.4"
 # 2026-10-26 v1.5: $Version = "1.5"
-$Version = "1.6"
+# 2026-10-26 v1.6: $Version = "1.6"
+$Version = "1.7"
 
 # --- Configurazione (v1.3): UUID account -> etichetta, letta da sposta-config.json accanto allo script ---
 # 2026-10-26 v1.2: etichette scritte nel codice ($Etichette = @{ '<uuid>' = 'personale'; '<uuid>' = 'lavoro' }); sostituite
@@ -916,4 +936,27 @@ function Apply-Filtro([string]$k) {
     $Lati[$k].tx.Text = "$($v.Count) sessioni mostrate su $(@($Lati[$k].Tutte).Count), $($Lati[$k].dg.SelectedItems.Count) selezionate"
 }
 
+#>
+
+# =============================================================================================================
+# 2026-10-26 v1.6 - blocco di avvio sostituito dalla v1.7 (console sempre visibile, rilancio solo se non STA):
+<#
+# --- v1.4: avvio da tasto destro "Esegui con PowerShell" ----------------------------------------------------
+# 1) Errori: senza questo la finestra di PowerShell si chiude subito e non si legge nulla. Tutto il resto dello script
+#    e' al livello principale: un errore bloccante arriva qui, lo mostra e aspetta Invio.
+trap {
+    Write-Host ""
+    Write-Host "ERRORE: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray
+    Read-Host "Premere Invio per chiudere"
+    exit 1
+}
+# 2) La finestra WPF richiede un thread STA (PowerShell 5.1 e' STA di default, PowerShell 7 no): se serve, lo script si
+#    rilancia da solo con -STA e criteri Bypass limitati a quel processo (nessuna modifica permanente al PC).
+if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui) -and
+    [Threading.Thread]::CurrentThread.GetApartmentState() -ne 'STA') {
+    $exe = (Get-Process -Id $PID).Path
+    & $exe -STA -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath
+    exit $LASTEXITCODE
+}
 #>
