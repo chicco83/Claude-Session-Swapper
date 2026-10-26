@@ -1,6 +1,10 @@
 ﻿# =============================================================================
-# Sposta-SessioniClaude_v1.4_2026-10-26_1958.ps1
-# Versione: 1.4 - 2026-10-26 19:58 (Europe/Rome)
+# Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1
+# Versione: 1.5 - 2026-10-26 20:00 (Europe/Rome)
+# v1.5: corretto il colore delle righe per progetto (con la v1.4 non compariva): il colore non passa piu' da un
+#       Binding XAML (con gli oggetti PowerShell la conversione testo -> pennello falliva in silenzio) ma e' assegnato in
+#       codice a ogni riga quando la griglia la crea (evento LoadingRow). Stessa cosa per le righe vuote non cliccabili.
+# (v1.4 2026-10-26 19:58: avvio da tasto destro Esegui con PowerShell)
 # v1.4: funziona con tasto destro -> "Esegui con PowerShell": si rilancia da solo in modalita' STA (serve a WPF) e con
 #       criteri di esecuzione Bypass solo per il proprio processo; gli errori non fanno piu' chiudere la finestra di
 #       PowerShell di colpo (messaggio + attesa di Invio). Funziona anche con PowerShell 7 su Windows.
@@ -41,12 +45,12 @@
 #   - ogni operazione e' scritta in un registro CSV (delimitatore ';'); -Ripristina <registro> la annulla.
 #
 # Uso (PowerShell, utente corrente, senza admin):
-#   .\Sposta-SessioniClaude_v1.4_2026-10-26_1958.ps1                       # FINESTRA: due pannelli (account per lato), frecce per spostare/copiare
+#   .\Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1                       # FINESTRA: due pannelli (account per lato), frecce per spostare/copiare
 #   (oppure tasto destro sul file -> Esegui con PowerShell)
-#   .\Sposta-SessioniClaude_v1.4_2026-10-26_1958.ps1 -Da personale -A lavoro
-#   .\Sposta-SessioniClaude_v1.4_2026-10-26_1958.ps1 -Da lavoro -A personale -Modalita Copia -Riavvia
-#   .\Sposta-SessioniClaude_v1.4_2026-10-26_1958.ps1 -Da personale -A lavoro -Sessioni 0c7c0e04-bcde-4f39-acc0-bc4cf6eea68a
-#   .\Sposta-SessioniClaude_v1.4_2026-10-26_1958.ps1 -Ripristina "<cartella tool>\registri\sposta_20261026_1620.csv"
+#   .\Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1 -Da personale -A lavoro
+#   .\Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1 -Da lavoro -A personale -Modalita Copia -Riavvia
+#   .\Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1 -Da personale -A lavoro -Sessioni 0c7c0e04-bcde-4f39-acc0-bc4cf6eea68a
+#   .\Sposta-SessioniClaude_v1.5_2026-10-26_2000.ps1 -Ripristina "<cartella tool>\registri\sposta_20261026_1620.csv"
 #   -Prova  : mostra cosa farebbe senza modificare nulla
 # =============================================================================
 [CmdletBinding()]
@@ -85,7 +89,8 @@ if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui) -and
 # 2026-10-26 v1.1: $Version = "1.1"
 # 2026-10-26 v1.2: $Version = "1.2"
 # 2026-10-26 v1.3: $Version = "1.3"
-$Version = "1.4"
+# 2026-10-26 v1.4: $Version = "1.4"
+$Version = "1.5"
 
 # --- Configurazione (v1.3): UUID account -> etichetta, letta da sposta-config.json accanto allo script ---
 # 2026-10-26 v1.2: etichette scritte nel codice ($Etichette = @{ '<uuid>' = 'personale'; '<uuid>' = 'lavoro' }); sostituite
@@ -321,16 +326,8 @@ function Get-XamlPannello([string]$k, [string]$titolo) {
       <DataGrid x:Name="dg$k" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Extended"
                 CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
                 CanUserSortColumns="False" RowHeight="22">
-        <DataGrid.RowStyle>
-          <Style TargetType="DataGridRow">
-            <Setter Property="Background" Value="{Binding Colore}"/>
-            <Style.Triggers>
-              <DataTrigger Binding="{Binding Vuota}" Value="True">
-                <Setter Property="IsHitTestVisible" Value="False"/>
-              </DataTrigger>
-            </Style.Triggers>
-          </Style>
-        </DataGrid.RowStyle>
+        <!-- 2026-10-26 v1.4: RowStyle con Background="{Binding Colore}" e DataTrigger su Vuota: il colore non compariva.
+             Dalla v1.5 colore e righe vuote sono impostati in codice (Set-StileRiga, evento LoadingRow). -->
         <DataGrid.Columns>
           <DataGridTextColumn Header="Titolo" Binding="{Binding Titolo}" Width="2*"/>
           <DataGridTextColumn Header="Ultima attivita'" Binding="{Binding UltimaTesto}" Width="115"/>
@@ -483,6 +480,18 @@ function Apply-Filtro([string]$k) {
     $Lati[$k].Mostrate = $n
     Update-Conteggio $k
 }
+# v1.5: colore di sfondo e riga vuota non cliccabile, impostati sulla riga quando la griglia la crea o la riusa
+function Set-StileRiga($riga) {
+    $it = $riga.Item
+    if ($it -isnot [psobject] -or -not ($it.PSObject.Properties['Colore'])) { return }
+    try {
+        $c = [Windows.Media.ColorConverter]::ConvertFromString([string]$it.Colore)
+        $b = New-Object Windows.Media.SolidColorBrush $c
+        $b.Freeze()
+        $riga.Background = $b
+    } catch { $riga.Background = [Windows.Media.Brushes]::White }
+    $riga.IsHitTestVisible = -not [bool]$it.Vuota
+}
 function Update-Conteggio([string]$k) {
     $sel = @($Lati[$k].dg.SelectedItems | Where-Object { -not $_.Vuota }).Count
     $Lati[$k].tx.Text = "$($Lati[$k].Mostrate) sessioni mostrate su $(@($Lati[$k].Tutte).Count), $sel selezionate"
@@ -523,6 +532,8 @@ $ui.cbL.Add_SelectionChanged({ Update-Allineato })
 $ui.cbR.Add_SelectionChanged({ Update-Allineato })
 $ui.tbL.Add_TextChanged({ Apply-Filtro 'L'; Apply-Filtro 'R' })
 $ui.tbR.Add_TextChanged({ Apply-Filtro 'R'; Apply-Filtro 'L' })
+$ui.dgL.Add_LoadingRow({ Set-StileRiga $args[1].Row })
+$ui.dgR.Add_LoadingRow({ Set-StileRiga $args[1].Row })
 $ui.dgL.Add_SelectionChanged({ Update-Conteggio 'L' })
 $ui.dgR.Add_SelectionChanged({ Update-Conteggio 'R' })
 $ui.chArchiviate.Add_Click({ Apply-Filtro 'L'; Apply-Filtro 'R' })

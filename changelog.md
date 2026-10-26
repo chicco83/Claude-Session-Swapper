@@ -1,6 +1,11 @@
 # Changelog — Sposta-SessioniClaude
 
-**Versione corrente:** 1.4 — 2026-10-26 19:58 (Europe/Rome)
+**Versione corrente:** 1.5 — 2026-10-26 20:00 (Europe/Rome)
+
+## v1.5 — 2026-10-26 20:00
+- **Corretto il colore per progetto**, che con la v1.4 non compariva (allineamento invece funzionante, provato dall'utente). Ipotesi sulla causa: il Binding XAML `Background="{Binding Colore}"` su oggetti PowerShell non convertiva il testo in pennello. Ora il colore è assegnato in codice a ogni riga (evento `LoadingRow`, funzione `Set-StileRiga`), come l'esclusione delle righe vuote dal clic.
+- **Verificato:** parser 0 errori. **Non provato:** il colore a video (causa non confermata). Se ancora assente: controllare se le sessioni "dello stesso progetto" hanno davvero la stessa `cwd` (il colore segue la cartella di lavoro esatta).
+- **Rollback:** `Sposta-SessioniClaude_v1.4_2026-10-26_1958.ps1`.
 
 ## v1.4 — 2026-10-26 19:58
 - **Tasto destro → "Esegui con PowerShell":** lo script si rilancia da solo in modalità STA (necessaria a WPF; PowerShell 7 non lo è di default) con `-ExecutionPolicy Bypass` solo per il proprio processo; un `trap` mostra gli errori e aspetta Invio invece di chiudere la finestra di colpo.
