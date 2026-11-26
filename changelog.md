@@ -1,6 +1,12 @@
 # Changelog — Sposta-SessioniClaude
 
-**Versione corrente:** 1.10 — 2026-11-26 09:50 (Europe/Rome)
+**Versione corrente:** 1.11 — 2026-11-26 10:10 (Europe/Rome)
+
+## v1.11 — 2026-11-26 10:06
+- **Modalità predefinita: Copia.** Prima: all'apertura della finestra era selezionato **Sposta** e da riga di comando `-Modalita` valeva `Sposta`. Ora: **Copia (in entrambi)** è già selezionata e `-Modalita` vale `Copia` se non indicato. Perché: chi alterna gli account vuole la sessione in entrambi (decisione S3, richiesta dell'utente 2026-11-26). **Sposta** resta disponibile (opzione nella finestra, `-Modalita Sposta`).
+- **Versioni precedenti archiviate** nella cartella `storico/` del progetto (ignorata da git): script v1.1–v1.10, context e manuali precedenti. Nella cartella principale restano solo l'ultima versione di script, context e manuale, più `changelog.md`, `README.md`, `CLAUDE.md` e i file di configurazione. Nulla è stato cancellato: il rollback è copiare il file dallo storico.
+- **Verificato (2026-11-26):** parser PowerShell 0 errori; controllo nel testo del file che il pulsante Copia ha `IsChecked="True"` e il parametro vale `Copia`. **Non provato:** l'aspetto della finestra con la nuova opzione predefinita (non lanciabile da una sessione Claude).
+- **Rollback:** copiare in questa cartella `storico/Sposta-SessioniClaude_v1.10_2026-11-26_0932.ps1` (o `-Modalita Sposta` da riga di comando; nella finestra basta scegliere Sposta).
 
 ## v1.10 — 2026-11-26 09:32
 - **Sincronizzazione automatica all'avvio.** Prima: archiviazione e ultima versione si allineavano solo premendo due pulsanti. Ora: all'apertura della finestra lo script controlla tutte le coppie di account e allinea da solo le sessioni presenti in più account (archiviata in uno = archiviata in tutti; scheda più vecchia aggiornata con quella più recente). Se l'app Claude è aperta chiede **una** conferma (va chiusa e riaperta); se è chiusa non chiede nulla e non la riapre. I due pulsanti manuali sono sostituiti da **Sincronizza ora** (stessa logica, con **Solo anteprima** funziona come anteprima).

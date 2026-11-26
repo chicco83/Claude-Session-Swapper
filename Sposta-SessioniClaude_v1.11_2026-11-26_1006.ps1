@@ -1,6 +1,10 @@
 ﻿# =============================================================================
-# Sposta-SessioniClaude_v1.10_2026-11-26_0932.ps1
-# Versione: 1.10 - 2026-11-26 09:32 (Europe/Rome)
+# Sposta-SessioniClaude_v1.11_2026-11-26_1006.ps1
+# Versione: 1.11 - 2026-11-26 10:06 (Europe/Rome)
+# v1.11: la modalita' predefinita e' ora COPIA (la sessione compare in entrambi gli account), sia nella finestra (opzione
+#        "Copia (in entrambi)" gia' selezionata) sia da riga di comando (-Modalita vale "Copia" se non indicato).
+#        "Sposta" resta disponibile: nella finestra scegliendola, da riga di comando con -Modalita Sposta.
+# (v1.10 2026-11-26 09:32: sincronizzazione automatica all'avvio e contatore)
 # v1.10: sincronizzazione AUTOMATICA all'avvio. All'apertura della finestra lo script controlla tutte le coppie di account e,
 #        se ci sono sessioni presenti in piu' account con schede diverse, le allinea da solo: archiviate in uno =
 #        archiviate in tutti (v1.8) e scheda piu' vecchia aggiornata con quella piu' recente (v1.9). Se l'app Claude e'
@@ -81,19 +85,20 @@
 #   - ogni operazione e' scritta in un registro CSV (delimitatore ';'); -Ripristina <registro> la annulla.
 #
 # Uso (PowerShell, utente corrente, senza admin):
-#   .\Sposta-SessioniClaude_v1.10_2026-11-26_0932.ps1                       # FINESTRA: due pannelli (account per lato), frecce per spostare/copiare
+#   .\Sposta-SessioniClaude_v1.11_2026-11-26_1006.ps1                       # FINESTRA: due pannelli (account per lato), frecce per spostare/copiare
 #   (oppure tasto destro sul file -> Esegui con PowerShell)
-#   .\Sposta-SessioniClaude_v1.10_2026-11-26_0932.ps1 -Da personale -A lavoro
-#   .\Sposta-SessioniClaude_v1.10_2026-11-26_0932.ps1 -Da lavoro -A personale -Modalita Copia -Riavvia
-#   .\Sposta-SessioniClaude_v1.10_2026-11-26_0932.ps1 -Da personale -A lavoro -Sessioni 0c7c0e04-bcde-4f39-acc0-bc4cf6eea68a
-#   .\Sposta-SessioniClaude_v1.10_2026-11-26_0932.ps1 -Ripristina "<cartella tool>\registri\sposta_20261026_1620.csv"
+#   .\Sposta-SessioniClaude_v1.11_2026-11-26_1006.ps1 -Da personale -A lavoro
+#   .\Sposta-SessioniClaude_v1.11_2026-11-26_1006.ps1 -Da lavoro -A personale -Modalita Copia -Riavvia
+#   .\Sposta-SessioniClaude_v1.11_2026-11-26_1006.ps1 -Da personale -A lavoro -Sessioni 0c7c0e04-bcde-4f39-acc0-bc4cf6eea68a
+#   .\Sposta-SessioniClaude_v1.11_2026-11-26_1006.ps1 -Ripristina "<cartella tool>\registri\sposta_20261026_1620.csv"
 #   -Prova  : mostra cosa farebbe senza modificare nulla
 # =============================================================================
 [CmdletBinding()]
 param(
     [string]$Da = "",                                  # account di origine: etichetta (personale/lavoro) o UUID
     [string]$A = "",                                   # account di destinazione: etichetta o UUID
-    [ValidateSet("Sposta", "Copia")][string]$Modalita = "Sposta",
+    # 2026-11-26 v1.10: [ValidateSet("Sposta", "Copia")][string]$Modalita = "Sposta",
+    [ValidateSet("Sposta", "Copia")][string]$Modalita = "Copia",    # v1.11: predefinita Copia
     [string[]]$Sessioni = @(),                         # cliSessionId da trattare (vuoto = scelta in finestra)
     [switch]$Riavvia,                                  # riapre l'app desktop alla fine
     [switch]$Prova,                                    # nessuna modifica, solo elenco delle azioni
@@ -149,7 +154,8 @@ if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui -or $SincArc
 # 2026-10-26 v1.7: $Version = "1.7"
 # 2026-11-26 v1.8: $Version = "1.8"
 # 2026-11-26 v1.9: $Version = "1.9"
-$Version = "1.10"
+# 2026-11-26 v1.10: $Version = "1.10"
+$Version = "1.11"
 
 # --- Configurazione (v1.3): UUID account -> etichetta, letta da sposta-config.json accanto allo script ---
 # 2026-10-26 v1.2: etichette scritte nel codice ($Etichette = @{ '<uuid>' = 'personale'; '<uuid>' = 'lavoro' }); sostituite
@@ -618,9 +624,9 @@ $(Get-XamlPannello 'L' 'Account di sinistra')
                 ToolTip="Sessioni selezionate a sinistra -&gt; account di destra"/>
         <Button x:Name="btSinistra" Content="&#x2190;" FontSize="26" Height="48" Margin="0,0,0,18"
                 ToolTip="Sessioni selezionate a destra -&gt; account di sinistra"/>
-        <RadioButton x:Name="rbSposta" Content="Sposta" IsChecked="True" Margin="0,0,0,4"
+        <RadioButton x:Name="rbSposta" Content="Sposta" Margin="0,0,0,4"
                      ToolTip="La sessione passa nell'altro account e sparisce da questo (scheda in backup)"/>
-        <RadioButton x:Name="rbCopia" Content="Copia (in entrambi)" Margin="0,0,0,12"
+        <RadioButton x:Name="rbCopia" Content="Copia (in entrambi)" IsChecked="True" Margin="0,0,0,12"
                      ToolTip="La sessione compare in tutti e due gli account"/>
         <CheckBox x:Name="chProva" Content="Solo anteprima" Margin="0,0,0,4"
                   ToolTip="Le frecce scrivono nel registro cosa farebbero, senza modificare nulla e senza chiudere l'app"/>

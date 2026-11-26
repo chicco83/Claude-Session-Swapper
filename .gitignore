@@ -9,16 +9,8 @@ CLAUDE.md
 context_*.md
 manual_*.md
 
-# Versioni precedenti dello script: online resta solo l'ultima
-Sposta-SessioniClaude_v1.1_*.ps1
-Sposta-SessioniClaude_v1.2_*.ps1
-Sposta-SessioniClaude_v1.3_*.ps1
-Sposta-SessioniClaude_v1.4_*.ps1
-Sposta-SessioniClaude_v1.5_*.ps1
-Sposta-SessioniClaude_v1.6_*.ps1
-Sposta-SessioniClaude_v1.7_*.ps1
-Sposta-SessioniClaude_v1.8_*.ps1
-Sposta-SessioniClaude_v1.9_*.ps1
+# Versioni precedenti di script, context e manuali (archivio locale, nulla cancellato)
+storico/
 
 # file di appoggio provvisori
 scratchpad/

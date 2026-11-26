@@ -11,7 +11,7 @@ Strumento PowerShell con finestra a due pannelli (stile FileZilla) che **sposta 
 Una sessione compare nell'app solo nell'account che ha la sua "scheda" (`local_<id>.json` in `%LOCALAPPDATA%\Claude-Data\claude_*\claude-code-sessions\<account>\<organizzazione>\`). La conversazione vera (`~\.claude\projects\...\<id>.jsonl`) è del PC e comune a tutti gli account: lo script lavora **solo sulle schede**.
 
 - **Sposta**: copia la scheda nell'altro account e mette quella di origine in `claude-code-sessions-backup\<data-ora>\`.
-- **Copia (in entrambi)**: la sessione compare in tutti e due gli account; il lavoro si somma nello stesso transcript.
+- **Copia (in entrambi)**: la sessione compare in tutti e due gli account; il lavoro si somma nello stesso transcript. È l'opzione predefinita.
 - Ogni esecuzione scrive un registro CSV in `registri\`; **Ripristina...** la annulla.
 
 ## Requisiti
@@ -106,7 +106,7 @@ A PowerShell tool with a two-pane window (FileZilla style) that **moves or copie
 A session shows up in the app only under the account that owns its "card" (`local_<id>.json` in `%LOCALAPPDATA%\Claude-Data\claude_*\claude-code-sessions\<account>\<organization>\`). The actual conversation (`~\.claude\projects\...\<id>.jsonl`) belongs to the PC and is shared by all accounts: the script works **only on the cards**.
 
 - **Move**: copies the card to the other account and puts the original in `claude-code-sessions-backup\<date-time>\`.
-- **Copy (in both)**: the session appears in both accounts; work accumulates in the same transcript.
+- **Copy (in both)**: the session appears in both accounts; work accumulates in the same transcript. It is the default.
 - Every run writes a CSV log to `registri\`; **Ripristina...** (Restore) undoes it.
 
 ### Requirements
@@ -192,6 +192,7 @@ Limits: Windows only; sees only the accounts of the current Windows user; with s
 
 | Data | Prima | Dopo | Perché |
 |---|---|---|---|
+| 2026-11-26 | all'avvio era selezionato **Sposta** (e `-Modalita` valeva `Sposta`) | predefinita **Copia** | chi alterna gli account vuole la sessione in entrambi |
 | 2026-11-26 | archiviazione e ultima versione si allineavano premendo due pulsanti | sincronizzazione automatica all'avvio, un solo pulsante **Sincronizza ora**, contatore delle sincronizzazioni, `-NoSincAvvio` | farla a mano non aveva senso; backup/registri con i millisecondi |
 | 2026-11-26 | usando una sessione con un solo account, la scheda dell'altro restava indietro (data, titolo, turni) | pulsante **Sincronizza alla più recente** e `-SincRecenti` | tornando sull'altro account la sessione appariva non aggiornata |
 | 2026-11-26 | l'archiviazione valeva solo nell'account in cui si archiviava | pulsante **Sincronizza archiviate** e `-SincArchiviate` | una sessione conclusa restava visibile nell'altro account |
