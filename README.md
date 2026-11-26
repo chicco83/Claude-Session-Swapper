@@ -42,6 +42,10 @@ Una sessione compare nell'app solo nell'account che ha la sua "scheda" (`local_<
 
 Lo stato "archiviata" sta nella scheda di ciascun account: archiviando una sessione conclusa in un account, nell'altro resta attiva. Il pulsante **Sincronizza archiviate** (o `-SincArchiviate` con `-Da` e `-A`) archivia nell'altro account le sessioni presenti in entrambi che sono archiviate in uno solo. Regola: archiviata in uno = archiviata in entrambi; il ripristino dall'archivio non si propaga. Prima di modificare la scheda ne tiene una copia di backup e scrive il registro, quindi **Ripristina...** la annulla.
 
+### Schede aggiornate alla più recente
+
+Una sessione presente in due account ha due schede: se la usi con un solo account, solo la sua scheda si aggiorna (data, titolo, turni), l'altra resta indietro. **Sincronizza alla più recente** (o `-SincRecenti` con `-Da` e `-A`) aggiorna, per ogni sessione presente in entrambi, la scheda più vecchia con i dati di quella più recente (titolo, data di ultima attività, turni completati, ultima risposta, modello). Non copia ciò che è proprio dell'account (connettori, controllo remoto, archiviazione). La conversazione è già comune e non viene toccata. Backup e registro come per le altre operazioni.
+
 ### Riga di comando
 
 ```powershell
@@ -49,6 +53,7 @@ $t = ".\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1"
 powershell -ExecutionPolicy Bypass -File $t -Da personale -A lavoro -Prova
 powershell -ExecutionPolicy Bypass -File $t -Da lavoro -A personale -Modalita Copia -Riavvia
 powershell -ExecutionPolicy Bypass -File $t -Da personale -A lavoro -SincArchiviate
+powershell -ExecutionPolicy Bypass -File $t -Da personale -A lavoro -SincRecenti
 powershell -ExecutionPolicy Bypass -File $t -Ripristina ".\registri\sposta_<data-ora>.csv"
 ```
 
@@ -130,6 +135,10 @@ The UI labels are in Italian.
 
 The "archived" state lives in each account's card: archiving a finished session in one account leaves it active in the other. The **Sincronizza archiviate** button (or `-SincArchiviate` with `-Da` and `-A`) archives, in the other account, the sessions present in both that are archived in only one. Rule: archived in one = archived in both; un-archiving does not propagate. The card is backed up before it is changed and the action is logged, so **Ripristina...** undoes it.
 
+#### Cards updated to the most recent
+
+A session present in two accounts has two cards: if you use it with one account only, only that card is updated (date, title, turns) and the other falls behind. **Sincronizza alla più recente** (or `-SincRecenti` with `-Da` and `-A`) updates, for every session present in both, the older card with the data of the more recent one (title, last-activity date, completed turns, last reply, model). It does not copy what belongs to the account (connectors, remote control, archiving). The conversation is already shared and is not touched. Backup and log work as for the other operations.
+
 #### Command line
 
 ```powershell
@@ -137,6 +146,7 @@ $t = ".\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1"
 powershell -ExecutionPolicy Bypass -File $t -Da personal -A work -Prova          # -Prova = dry run
 powershell -ExecutionPolicy Bypass -File $t -Da work -A personal -Modalita Copia -Riavvia
 powershell -ExecutionPolicy Bypass -File $t -Da personal -A work -SincArchiviate
+powershell -ExecutionPolicy Bypass -File $t -Da personal -A work -SincRecenti
 powershell -ExecutionPolicy Bypass -File $t -Ripristina ".\registri\sposta_<date-time>.csv"
 ```
 
@@ -174,5 +184,6 @@ Limits: Windows only; sees only the accounts of the current Windows user; with s
 
 | Data | Prima | Dopo | Perché |
 |---|---|---|---|
+| 2026-11-26 | usando una sessione con un solo account, la scheda dell'altro restava indietro (data, titolo, turni) | pulsante **Sincronizza alla più recente** e `-SincRecenti` | tornando sull'altro account la sessione appariva non aggiornata |
 | 2026-11-26 | l'archiviazione valeva solo nell'account in cui si archiviava | pulsante **Sincronizza archiviate** e `-SincArchiviate` | una sessione conclusa restava visibile nell'altro account |
 | 2026-10-26 | solo script base | aggiunti colori per progetto, righe allineate, intestazioni "cartella", account portabili, console nascosta, tabella problemi comuni | uso su altri PC e comodità di lettura |

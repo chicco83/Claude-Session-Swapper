@@ -1,6 +1,14 @@
 ﻿# =============================================================================
-# Sposta-SessioniClaude_v1.8_2026-11-26_0921.ps1
-# Versione: 1.8 - 2026-11-26 09:21 (Europe/Rome)
+# Sposta-SessioniClaude_v1.9_2026-11-26_0926.ps1
+# Versione: 1.9 - 2026-11-26 09:26 (Europe/Rome)
+# v1.9: sincronizzazione sulla scheda piu' recente. Una sessione presente in due account ha due schede; usandola con un
+#       account solo la sua scheda si aggiorna (data, titolo, turni completati...), quella dell'altro account resta
+#       indietro. Nuovo pulsante "Sincronizza alla piu' recente" (e -SincRecenti da riga di comando): per ogni sessione
+#       presente in entrambi, la scheda con ultima attivita' piu' vecchia riceve i campi di avanzamento della piu'
+#       recente. NON si copiano i campi legati all'account (connettori, controllo remoto, adozione, ultimo focus,
+#       istantanee degli strumenti). Il transcript e' gia' comune e non si tocca. Backup della scheda modificata e
+#       registro (Azione = Aggiorna): "Ripristina..." la rimette com'era.
+# (v1.8 2026-11-26 09:21: sincronizzazione dell'archiviazione)
 # v1.8: sincronizzazione dell'archiviazione. Lo stato "archiviata" sta nella scheda di ogni account (campo isArchived), quindi
 #       archiviando una sessione in un account l'altra scheda restava attiva. Nuovo pulsante "Sincronizza archiviate" (e
 #       -SincArchiviate da riga di comando): se una sessione presente in entrambi gli account e' archiviata in uno, viene
@@ -62,12 +70,12 @@
 #   - ogni operazione e' scritta in un registro CSV (delimitatore ';'); -Ripristina <registro> la annulla.
 #
 # Uso (PowerShell, utente corrente, senza admin):
-#   .\Sposta-SessioniClaude_v1.8_2026-11-26_0921.ps1                       # FINESTRA: due pannelli (account per lato), frecce per spostare/copiare
+#   .\Sposta-SessioniClaude_v1.9_2026-11-26_0926.ps1                       # FINESTRA: due pannelli (account per lato), frecce per spostare/copiare
 #   (oppure tasto destro sul file -> Esegui con PowerShell)
-#   .\Sposta-SessioniClaude_v1.8_2026-11-26_0921.ps1 -Da personale -A lavoro
-#   .\Sposta-SessioniClaude_v1.8_2026-11-26_0921.ps1 -Da lavoro -A personale -Modalita Copia -Riavvia
-#   .\Sposta-SessioniClaude_v1.8_2026-11-26_0921.ps1 -Da personale -A lavoro -Sessioni 0c7c0e04-bcde-4f39-acc0-bc4cf6eea68a
-#   .\Sposta-SessioniClaude_v1.8_2026-11-26_0921.ps1 -Ripristina "<cartella tool>\registri\sposta_20261026_1620.csv"
+#   .\Sposta-SessioniClaude_v1.9_2026-11-26_0926.ps1 -Da personale -A lavoro
+#   .\Sposta-SessioniClaude_v1.9_2026-11-26_0926.ps1 -Da lavoro -A personale -Modalita Copia -Riavvia
+#   .\Sposta-SessioniClaude_v1.9_2026-11-26_0926.ps1 -Da personale -A lavoro -Sessioni 0c7c0e04-bcde-4f39-acc0-bc4cf6eea68a
+#   .\Sposta-SessioniClaude_v1.9_2026-11-26_0926.ps1 -Ripristina "<cartella tool>\registri\sposta_20261026_1620.csv"
 #   -Prova  : mostra cosa farebbe senza modificare nulla
 # =============================================================================
 [CmdletBinding()]
@@ -81,7 +89,8 @@ param(
     [string]$Ripristina = "",                          # registro CSV di un'esecuzione da annullare
     [switch]$NoGui,                                    # v1.1: riga di comando anche senza altri parametri
     [switch]$MostraConsole,                            # v1.7: non nascondere la finestra di PowerShell (diagnosi)
-    [switch]$SincArchiviate                            # v1.8: da riga di comando, allinea l'archiviazione tra -Da e -A
+    [switch]$SincArchiviate,                           # v1.8: da riga di comando, allinea l'archiviazione tra -Da e -A
+    [switch]$SincRecenti                               # v1.9: da riga di comando, allinea le schede sulla piu' recente
 )
 
 $ErrorActionPreference = 'Stop'
@@ -105,7 +114,7 @@ trap {
 #    STA (richiesta da WPF) e con criteri Bypass limitati a quel processo (nessuna modifica permanente al PC), poi chiude
 #    subito la console visibile. Con -MostraConsole il processo resta visibile.
 #    2026-10-26 v1.4: rilancio solo se il thread non era STA, console sempre visibile.
-if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui -or $SincArchiviate) -and -not $env:SPOSTA_FIGLIO) {
+if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui -or $SincArchiviate -or $SincRecenti) -and -not $env:SPOSTA_FIGLIO) {
     $exe = (Get-Process -Id $PID).Path
     $argomenti = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"")
     $env:SPOSTA_FIGLIO = '1'                            # ereditata dal figlio: evita il rilancio infinito
@@ -125,7 +134,8 @@ if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui -or $SincArc
 # 2026-10-26 v1.5: $Version = "1.5"
 # 2026-10-26 v1.6: $Version = "1.6"
 # 2026-10-26 v1.7: $Version = "1.7"
-$Version = "1.8"
+# 2026-11-26 v1.8: $Version = "1.8"
+$Version = "1.9"
 
 # --- Configurazione (v1.3): UUID account -> etichetta, letta da sposta-config.json accanto allo script ---
 # 2026-10-26 v1.2: etichette scritte nel codice ($Etichette = @{ '<uuid>' = 'personale'; '<uuid>' = 'lavoro' }); sostituite
@@ -259,7 +269,7 @@ function Invoke-Ripristino([string]$registro, [bool]$prova, [bool]$riavvia) {
     foreach ($r in $righe) {
         if ($prova) { Write-Log "[prova] annullerei: $($r.Azione) $($r.Titolo)"; continue }
         if ($r.Destinazione -and (Test-Path $r.Destinazione)) { Remove-Item $r.Destinazione -Force }   # scheda creata dal tool
-        if ($r.Azione -eq 'Archivia' -and $r.Backup -and (Test-Path $r.Backup)) {
+        if (($r.Azione -eq 'Archivia' -or $r.Azione -eq 'Aggiorna') -and $r.Backup -and (Test-Path $r.Backup)) {
             Copy-Item $r.Backup $r.Origine -Force                                                      # v1.8: scheda com'era prima dell'archiviazione
         }
         if ($r.Azione -eq 'Sposta' -and $r.Backup -and (Test-Path $r.Backup) -and -not (Test-Path $r.Origine)) {
@@ -360,13 +370,77 @@ function Invoke-SincArchiviate($accA, $accB, [bool]$prova) {
     return $null
 }
 
+# --- v1.9: sincronizzazione sulla scheda piu' recente ---------------------------------------------------------
+# Campi di avanzamento della sessione che si copiano dalla scheda piu' recente. Restano fuori (propri di ogni account):
+# enabledMcpTools, remoteMcpServersConfig (connettori), adoptedFromOtherSurface, lastFocusedAt, bridgeSessionIds e i campi
+# remoteControl*/steeredByRemoteClient (controllo remoto), promptAppendSnapshot e toolSurfaceSnapshot (strumenti), isArchived
+# (lo gestisce Sincronizza archiviate).
+$CampiAvanzamento = @('title', 'titleSource', 'titleTurn', 'previousTitles', 'lastActivityAt', 'completedTurns',
+                      'postTurnSummary', 'postTurnSummaryFor', 'lastAssistantUuid', 'lastAssistantCliSessionId',
+                      'lastTurnEdgeAt', 'latestUserFrameAt', 'lastTurnReport', 'turnWrapUp', 'model', 'effort', 'permissionMode')
+function Get-DaAggiornare($accA, $accB) {
+    $ma = @{}; foreach ($x in @(Get-Schede $accA)) { if (-not $ma.ContainsKey($x.Id)) { $ma[$x.Id] = @() }; $ma[$x.Id] += $x }
+    $mb = @{}; foreach ($x in @(Get-Schede $accB)) { if (-not $mb.ContainsKey($x.Id)) { $mb[$x.Id] = @() }; $mb[$x.Id] += $x }
+    $out = @()
+    foreach ($id in $ma.Keys) {
+        if (-not $mb.ContainsKey($id)) { continue }
+        $ba = @($ma[$id] | Sort-Object UltimaAttivita -Descending)[0]
+        $bb = @($mb[$id] | Sort-Object UltimaAttivita -Descending)[0]
+        $ta = if ($ba.UltimaAttivita) { $ba.UltimaAttivita } else { [datetime]::MinValue }
+        $tb = if ($bb.UltimaAttivita) { $bb.UltimaAttivita } else { [datetime]::MinValue }
+        if ($ta -gt $tb) { $out += [pscustomobject]@{ Sorgente = $ba; Scheda = $bb; Da = $accA; A = $accB } }
+        elseif ($tb -gt $ta) { $out += [pscustomobject]@{ Sorgente = $bb; Scheda = $ba; Da = $accB; A = $accA } }
+    }
+    return $out
+}
+# Copia i campi di avanzamento dalla scheda sorgente a quella di destinazione (l'app deve essere chiusa)
+function Update-SchedaDa([string]$sorgente, [string]$dest) {
+    $src = Get-Content $sorgente -Raw -Encoding UTF8 | ConvertFrom-Json
+    $dst = Get-Content $dest -Raw -Encoding UTF8 | ConvertFrom-Json
+    foreach ($c in $CampiAvanzamento) {
+        if ($src.PSObject.Properties[$c]) { $dst | Add-Member -NotePropertyName $c -NotePropertyValue $src.$c -Force }
+        elseif ($dst.PSObject.Properties[$c]) { $dst.PSObject.Properties.Remove($c) }
+    }
+    $txt = $dst | ConvertTo-Json -Depth 100 -Compress
+    [void]($txt | ConvertFrom-Json)                                              # controllo: JSON valido
+    [IO.File]::WriteAllText($dest, $txt, (New-Object Text.UTF8Encoding $false))  # UTF-8 senza BOM, come l'app
+}
+# L'app deve gia' essere chiusa (salvo $prova); restituisce il percorso del registro
+function Invoke-SincRecenti($accA, $accB, [bool]$prova) {
+    $lista = @(Get-DaAggiornare $accA $accB)
+    Write-Log "Sincronizza alla piu' recente tra $(Get-NomeAccount $accA.Name) e $(Get-NomeAccount $accB.Name): $($lista.Count) schede da aggiornare"
+    $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $log = @()
+    foreach ($e in $lista) {
+        $s = $e.Scheda; $f = $e.Sorgente
+        $quando = "$($s.UltimaAttivita.ToString('dd/MM/yyyy HH:mm')) -> $($f.UltimaAttivita.ToString('dd/MM/yyyy HH:mm'))"
+        if ($prova) { Write-Log "[prova] aggiornerei in $(Get-NomeAccount $e.A.Name): '$($f.Titolo)' ($quando, scheda piu' recente in $(Get-NomeAccount $e.Da.Name))"; continue }
+        $bk = Join-Path $backup ("$stamp\" + $s.File.Substring($radice.Length).TrimStart('\'))
+        New-Item -ItemType Directory -Force (Split-Path $bk -Parent) | Out-Null
+        Copy-Item $s.File $bk                                                  # backup della scheda com'era
+        Update-SchedaDa $f.File $s.File
+        $log += [pscustomobject]@{ Data = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'); Azione = 'Aggiorna'; Titolo = $f.Titolo; Id = $s.Id
+                                   Da = (Get-NomeAccount $e.Da.Name); A = (Get-NomeAccount $e.A.Name)
+                                   Origine = $s.File; Destinazione = ''; Backup = $bk }
+        Write-Log "Aggiornata in $(Get-NomeAccount $e.A.Name): $($f.Titolo) ($quando)"
+    }
+    if ($log.Count) {
+        New-Item -ItemType Directory -Force $Registri | Out-Null
+        $r = Join-Path $Registri "sposta_$stamp.csv"
+        $log | Export-Csv $r -Delimiter ';' -NoTypeInformation -Encoding UTF8
+        Write-Log "Registro: $r"
+        return $r
+    }
+    return $null
+}
+
 # =============================================================================================================
 $radice = Get-RadiceSchede
 $backup = Join-Path (Split-Path $radice -Parent) 'claude-code-sessions-backup'
 $accounts = @(Get-ChildItem $radice -Directory | Where-Object { $_.Name -match '^[0-9a-f-]{36}$' })
 
 # Riga di comando: si usa se e' indicato almeno un parametro operativo; altrimenti si apre la finestra
-$daRigaDiComando = [bool]($Ripristina -or $Da -or $A -or $Sessioni.Count -or $NoGui -or $SincArchiviate)
+$daRigaDiComando = [bool]($Ripristina -or $Da -or $A -or $Sessioni.Count -or $NoGui -or $SincArchiviate -or $SincRecenti)
 
 # --- RIGA DI COMANDO ----------------------------------------------------------------------------------------
 if ($daRigaDiComando) {
@@ -383,6 +457,16 @@ if ($daRigaDiComando) {
         $chiusa = $false
         if (-not $Prova) { $chiusa = Close-App }
         $f = Invoke-SincArchiviate $accDa $accA ([bool]$Prova)
+        if ($f) { Write-Log "Annullare con: -Ripristina `"$f`"" }
+        if (($Riavvia -or $chiusa) -and -not $Prova) { Start-App }
+        return
+    }
+    if ($SincRecenti) {
+        $da = @(Get-DaAggiornare $accDa $accA).Count
+        if ($da -eq 0) { Write-Log "Schede gia' allineate sulla piu' recente."; return }
+        $chiusa = $false
+        if (-not $Prova) { $chiusa = Close-App }
+        $f = Invoke-SincRecenti $accDa $accA ([bool]$Prova)
         if ($f) { Write-Log "Annullare con: -Ripristina `"$f`"" }
         if (($Riavvia -or $chiusa) -and -not $Prova) { Start-App }
         return
@@ -470,6 +554,7 @@ $(Get-XamlPannello 'L' 'Account di sinistra')
         <CheckBox x:Name="chArchiviate" Content="Mostra archiviate" Margin="0,0,0,12"/>
         <Button x:Name="btAggiorna" Content="Aggiorna" Padding="6,3" Margin="0,0,0,6"/>
         <Button x:Name="btSincro" Content="Sincronizza archiviate" Padding="6,3" Margin="0,0,0,6" ToolTip="Se una sessione presente in entrambi gli account e' archiviata in uno, la archivia anche nell'altro"/>
+        <Button x:Name="btRecenti" Content="Sincronizza alla piu' recente" Padding="6,3" Margin="0,0,0,6" ToolTip="Per le sessioni presenti in entrambi gli account, aggiorna la scheda piu' vecchia (data, titolo, turni) con quella piu' recente"/>
         <Button x:Name="btRinomina" Content="Rinomina account..." Padding="6,3" Margin="0,0,0,6" ToolTip="Da' un nome ai due account mostrati (salvato in sposta-config.json)"/>
         <Button x:Name="btRipristina" Content="Ripristina..." Padding="6,3" ToolTip="Annulla un'esecuzione scegliendo il suo registro"/>
       </StackPanel>
@@ -483,7 +568,7 @@ $(Get-XamlPannello 'R' 'Account di destra')
 "@
 $win = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
 $ui = @{}
-foreach ($n in 'cbL','tbL','txL','dgL','cbR','tbR','txR','dgR','btDestra','btSinistra','rbSposta','rbCopia','chProva','chRiapri','chArchiviate','btAggiorna','btSincro','btRinomina','btRipristina','txStato','tbLog') {
+foreach ($n in 'cbL','tbL','txL','dgL','cbR','tbR','txR','dgR','btDestra','btSinistra','rbSposta','rbCopia','chProva','chRiapri','chArchiviate','btAggiorna','btSincro','btRecenti','btRinomina','btRipristina','txStato','tbLog') {
     $ui[$n] = $win.FindName($n)
 }
 $script:LogBox = $ui.tbLog
@@ -692,6 +777,26 @@ $ui.btSincro.Add_Click({
         if ([Windows.MessageBox]::Show("Archiviare $n schede per allinearle all'altro account.`n`nL'app desktop di Claude verra' chiusa. Procedere?", "Sposta sessioni", 'YesNo', 'Question') -ne 'Yes') { return }
         [void](Close-App)
         $f = Invoke-SincArchiviate $aL $aR $false
+        if ($f) { Write-Log "Per annullare: 'Ripristina...' e scegliere $([IO.Path]::GetFileName($f))" }
+        if ($ui.chRiapri.IsChecked) { Start-App }
+    } catch { Write-Log "ERRORE: $($_.Exception.Message)" }
+    Fill-Account; Update-Tutto
+})
+# v1.9: schede allineate sulla piu' recente (le sessioni presenti in entrambi gli account hanno la stessa data e lo stesso titolo)
+$ui.btRecenti.Add_Click({
+    $aL = Get-AccLato 'L'; $aR = Get-AccLato 'R'
+    if (-not $aL -or -not $aR -or $aL.Name -eq $aR.Name) { [void][Windows.MessageBox]::Show("Scegliere due account diversi.", "Sposta sessioni"); return }
+    try {
+        if ($ui.chProva.IsChecked) {
+            [void](Invoke-SincRecenti $aL $aR $true)
+            Write-Log "(anteprima: nessuna modifica; togliere 'Solo anteprima' per eseguire)"
+            return
+        }
+        $n = @(Get-DaAggiornare $aL $aR).Count
+        if ($n -eq 0) { Write-Log "Schede gia' allineate sulla piu' recente: nessuna da modificare."; return }
+        if ([Windows.MessageBox]::Show("Aggiornare $n schede con i dati della scheda piu' recente dell'altro account.`n`nL'app desktop di Claude verra' chiusa. Procedere?", "Sposta sessioni", 'YesNo', 'Question') -ne 'Yes') { return }
+        [void](Close-App)
+        $f = Invoke-SincRecenti $aL $aR $false
         if ($f) { Write-Log "Per annullare: 'Ripristina...' e scegliere $([IO.Path]::GetFileName($f))" }
         if ($ui.chRiapri.IsChecked) { Start-App }
     } catch { Write-Log "ERRORE: $($_.Exception.Message)" }
