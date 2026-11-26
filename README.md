@@ -38,12 +38,17 @@ Una sessione compare nell'app solo nell'account che ha la sua "scheda" (`local_<
 - Le sessioni presenti in **tutti e due** gli account stanno sulla **stessa riga**; dove manca c'è una riga grigia vuota. I pannelli scorrono insieme.
 - Ordine: per progetto (il più recente prima), poi per ultima attività. Le intestazioni non ordinano (romperebbe l'allineamento).
 
+### Archiviazione sincronizzata
+
+Lo stato "archiviata" sta nella scheda di ciascun account: archiviando una sessione conclusa in un account, nell'altro resta attiva. Il pulsante **Sincronizza archiviate** (o `-SincArchiviate` con `-Da` e `-A`) archivia nell'altro account le sessioni presenti in entrambi che sono archiviate in uno solo. Regola: archiviata in uno = archiviata in entrambi; il ripristino dall'archivio non si propaga. Prima di modificare la scheda ne tiene una copia di backup e scrive il registro, quindi **Ripristina...** la annulla.
+
 ### Riga di comando
 
 ```powershell
 $t = ".\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1"
 powershell -ExecutionPolicy Bypass -File $t -Da personale -A lavoro -Prova
 powershell -ExecutionPolicy Bypass -File $t -Da lavoro -A personale -Modalita Copia -Riavvia
+powershell -ExecutionPolicy Bypass -File $t -Da personale -A lavoro -SincArchiviate
 powershell -ExecutionPolicy Bypass -File $t -Ripristina ".\registri\sposta_<data-ora>.csv"
 ```
 
@@ -121,12 +126,17 @@ The UI labels are in Italian.
 - Sessions present in **both** accounts sit on the **same row**; a grey blank row fills the gap on the other side. The panes scroll together.
 - Order: by project (most recent first), then by last activity. Column headers do not sort (it would break the alignment).
 
+#### Synchronized archiving
+
+The "archived" state lives in each account's card: archiving a finished session in one account leaves it active in the other. The **Sincronizza archiviate** button (or `-SincArchiviate` with `-Da` and `-A`) archives, in the other account, the sessions present in both that are archived in only one. Rule: archived in one = archived in both; un-archiving does not propagate. The card is backed up before it is changed and the action is logged, so **Ripristina...** undoes it.
+
 #### Command line
 
 ```powershell
 $t = ".\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1"
 powershell -ExecutionPolicy Bypass -File $t -Da personal -A work -Prova          # -Prova = dry run
 powershell -ExecutionPolicy Bypass -File $t -Da work -A personal -Modalita Copia -Riavvia
+powershell -ExecutionPolicy Bypass -File $t -Da personal -A work -SincArchiviate
 powershell -ExecutionPolicy Bypass -File $t -Ripristina ".\registri\sposta_<date-time>.csv"
 ```
 
@@ -159,3 +169,10 @@ Limits: Windows only; sees only the accounts of the current Windows user; with s
 | `Sposta-SessioniClaude_v*.ps1` | the script |
 | `sposta-config.example.json` | example account labels (copy it to `sposta-config.json`) |
 | `changelog.md` | version history |
+
+## Storico modifiche
+
+| Data | Prima | Dopo | Perché |
+|---|---|---|---|
+| 2026-11-26 | l'archiviazione valeva solo nell'account in cui si archiviava | pulsante **Sincronizza archiviate** e `-SincArchiviate` | una sessione conclusa restava visibile nell'altro account |
+| 2026-10-26 | solo script base | aggiunti colori per progetto, righe allineate, intestazioni "cartella", account portabili, console nascosta, tabella problemi comuni | uso su altri PC e comodità di lettura |

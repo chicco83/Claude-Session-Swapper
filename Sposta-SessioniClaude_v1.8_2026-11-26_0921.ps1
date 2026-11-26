@@ -1,6 +1,14 @@
 ﻿# =============================================================================
-# Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1
-# Versione: 1.7 - 2026-10-26 20:04 (Europe/Rome)
+# Sposta-SessioniClaude_v1.8_2026-11-26_0921.ps1
+# Versione: 1.8 - 2026-11-26 09:21 (Europe/Rome)
+# v1.8: sincronizzazione dell'archiviazione. Lo stato "archiviata" sta nella scheda di ogni account (campo isArchived), quindi
+#       archiviando una sessione in un account l'altra scheda restava attiva. Nuovo pulsante "Sincronizza archiviate" (e
+#       -SincArchiviate da riga di comando): se una sessione presente in entrambi gli account e' archiviata in uno, viene
+#       archiviata anche nell'altro. Regola: archiviata ovunque = archiviata in entrambi; il ripristino dall'archivio
+#       non si propaga (altrimenti una sessione riaperta in un account verrebbe riarchiviata dall'altro).
+#       La scheda modificata e' copiata prima in claude-code-sessions-backup e l'azione e' scritta nel registro CSV
+#       (Azione = Archivia): "Ripristina..." rimette la scheda com'era.
+# (v1.7 2026-10-26 20:04: console PowerShell nascosta dietro alla finestra)
 # v1.7: la finestra di PowerShell resta nascosta dietro alla finestra grafica: lanciando senza parametri lo script si
 #       rilancia da solo in un processo PowerShell nascosto (-WindowStyle Hidden) e chiude subito quello visibile.
 #       Gli errori, non potendo piu' stare nella console, escono in una finestra di messaggio. Per vedere la console
@@ -54,12 +62,12 @@
 #   - ogni operazione e' scritta in un registro CSV (delimitatore ';'); -Ripristina <registro> la annulla.
 #
 # Uso (PowerShell, utente corrente, senza admin):
-#   .\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1                       # FINESTRA: due pannelli (account per lato), frecce per spostare/copiare
+#   .\Sposta-SessioniClaude_v1.8_2026-11-26_0921.ps1                       # FINESTRA: due pannelli (account per lato), frecce per spostare/copiare
 #   (oppure tasto destro sul file -> Esegui con PowerShell)
-#   .\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1 -Da personale -A lavoro
-#   .\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1 -Da lavoro -A personale -Modalita Copia -Riavvia
-#   .\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1 -Da personale -A lavoro -Sessioni 0c7c0e04-bcde-4f39-acc0-bc4cf6eea68a
-#   .\Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1 -Ripristina "<cartella tool>\registri\sposta_20261026_1620.csv"
+#   .\Sposta-SessioniClaude_v1.8_2026-11-26_0921.ps1 -Da personale -A lavoro
+#   .\Sposta-SessioniClaude_v1.8_2026-11-26_0921.ps1 -Da lavoro -A personale -Modalita Copia -Riavvia
+#   .\Sposta-SessioniClaude_v1.8_2026-11-26_0921.ps1 -Da personale -A lavoro -Sessioni 0c7c0e04-bcde-4f39-acc0-bc4cf6eea68a
+#   .\Sposta-SessioniClaude_v1.8_2026-11-26_0921.ps1 -Ripristina "<cartella tool>\registri\sposta_20261026_1620.csv"
 #   -Prova  : mostra cosa farebbe senza modificare nulla
 # =============================================================================
 [CmdletBinding()]
@@ -72,7 +80,8 @@ param(
     [switch]$Prova,                                    # nessuna modifica, solo elenco delle azioni
     [string]$Ripristina = "",                          # registro CSV di un'esecuzione da annullare
     [switch]$NoGui,                                    # v1.1: riga di comando anche senza altri parametri
-    [switch]$MostraConsole                             # v1.7: non nascondere la finestra di PowerShell (diagnosi)
+    [switch]$MostraConsole,                            # v1.7: non nascondere la finestra di PowerShell (diagnosi)
+    [switch]$SincArchiviate                            # v1.8: da riga di comando, allinea l'archiviazione tra -Da e -A
 )
 
 $ErrorActionPreference = 'Stop'
@@ -96,7 +105,7 @@ trap {
 #    STA (richiesta da WPF) e con criteri Bypass limitati a quel processo (nessuna modifica permanente al PC), poi chiude
 #    subito la console visibile. Con -MostraConsole il processo resta visibile.
 #    2026-10-26 v1.4: rilancio solo se il thread non era STA, console sempre visibile.
-if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui) -and -not $env:SPOSTA_FIGLIO) {
+if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui -or $SincArchiviate) -and -not $env:SPOSTA_FIGLIO) {
     $exe = (Get-Process -Id $PID).Path
     $argomenti = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"")
     $env:SPOSTA_FIGLIO = '1'                            # ereditata dal figlio: evita il rilancio infinito
@@ -115,7 +124,8 @@ if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui) -and -not $
 # 2026-10-26 v1.4: $Version = "1.4"
 # 2026-10-26 v1.5: $Version = "1.5"
 # 2026-10-26 v1.6: $Version = "1.6"
-$Version = "1.7"
+# 2026-10-26 v1.7: $Version = "1.7"
+$Version = "1.8"
 
 # --- Configurazione (v1.3): UUID account -> etichetta, letta da sposta-config.json accanto allo script ---
 # 2026-10-26 v1.2: etichette scritte nel codice ($Etichette = @{ '<uuid>' = 'personale'; '<uuid>' = 'lavoro' }); sostituite
@@ -249,6 +259,9 @@ function Invoke-Ripristino([string]$registro, [bool]$prova, [bool]$riavvia) {
     foreach ($r in $righe) {
         if ($prova) { Write-Log "[prova] annullerei: $($r.Azione) $($r.Titolo)"; continue }
         if ($r.Destinazione -and (Test-Path $r.Destinazione)) { Remove-Item $r.Destinazione -Force }   # scheda creata dal tool
+        if ($r.Azione -eq 'Archivia' -and $r.Backup -and (Test-Path $r.Backup)) {
+            Copy-Item $r.Backup $r.Origine -Force                                                      # v1.8: scheda com'era prima dell'archiviazione
+        }
         if ($r.Azione -eq 'Sposta' -and $r.Backup -and (Test-Path $r.Backup) -and -not (Test-Path $r.Origine)) {
             Move-Item $r.Backup $r.Origine                                                             # rimette la scheda originale
         }
@@ -292,13 +305,68 @@ function Invoke-Operazione($accDa, $accA, $scelte, [string]$modalita, [bool]$pro
     return $null
 }
 
+# --- v1.8: sincronizzazione dell'archiviazione ---------------------------------------------------------------
+# Elenco delle schede da archiviare: sessioni presenti in entrambi gli account, archiviate in uno solo (nell'altro: schede attive)
+function Get-DaArchiviare($accA, $accB) {
+    $ma = @{}; foreach ($x in @(Get-Schede $accA)) { if (-not $ma.ContainsKey($x.Id)) { $ma[$x.Id] = @() }; $ma[$x.Id] += $x }
+    $mb = @{}; foreach ($x in @(Get-Schede $accB)) { if (-not $mb.ContainsKey($x.Id)) { $mb[$x.Id] = @() }; $mb[$x.Id] += $x }
+    $out = @()
+    foreach ($id in $ma.Keys) {
+        if (-not $mb.ContainsKey($id)) { continue }
+        $archA = @($ma[$id] | Where-Object { $_.Archiviata }).Count -gt 0
+        $archB = @($mb[$id] | Where-Object { $_.Archiviata }).Count -gt 0
+        if ($archA -and -not $archB) { foreach ($x in $mb[$id]) { $out += [pscustomobject]@{ Scheda = $x; Da = $accA; A = $accB } } }
+        elseif ($archB -and -not $archA) { foreach ($x in $ma[$id]) { $out += [pscustomobject]@{ Scheda = $x; Da = $accB; A = $accA } } }
+    }
+    return $out
+}
+# Imposta isArchived = true nella scheda (cambio di testo mirato: il resto del file resta identico)
+function Set-SchedaArchiviata([string]$file) {
+    $t = [IO.File]::ReadAllText($file, [Text.Encoding]::UTF8)
+    $n = [regex]::Replace($t, '("isArchived"\s*:\s*)false', '${1}true')
+    if ($n -eq $t) {                                                           # campo assente: via oggetto
+        $j = $t | ConvertFrom-Json
+        $j | Add-Member -NotePropertyName 'isArchived' -NotePropertyValue $true -Force
+        $n = $j | ConvertTo-Json -Depth 100 -Compress
+    }
+    [void]($n | ConvertFrom-Json)                                              # controllo: JSON valido
+    [IO.File]::WriteAllText($file, $n, (New-Object Text.UTF8Encoding $false))  # UTF-8 senza BOM, come l'app
+}
+# L'app deve gia' essere chiusa (salvo $prova); restituisce il percorso del registro
+function Invoke-SincArchiviate($accA, $accB, [bool]$prova) {
+    $lista = @(Get-DaArchiviare $accA $accB)
+    Write-Log "Sincronizza archiviate tra $(Get-NomeAccount $accA.Name) e $(Get-NomeAccount $accB.Name): $($lista.Count) schede da archiviare"
+    $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $log = @()
+    foreach ($e in $lista) {
+        $s = $e.Scheda
+        if ($prova) { Write-Log "[prova] archivierei in $(Get-NomeAccount $e.A.Name): '$($s.Titolo)' (archiviata in $(Get-NomeAccount $e.Da.Name))"; continue }
+        $bk = Join-Path $backup ("$stamp\" + $s.File.Substring($radice.Length).TrimStart('\'))
+        New-Item -ItemType Directory -Force (Split-Path $bk -Parent) | Out-Null
+        Copy-Item $s.File $bk                                                  # backup della scheda com'era
+        Set-SchedaArchiviata $s.File
+        $log += [pscustomobject]@{ Data = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'); Azione = 'Archivia'; Titolo = $s.Titolo; Id = $s.Id
+                                   Da = (Get-NomeAccount $e.Da.Name); A = (Get-NomeAccount $e.A.Name)
+                                   Origine = $s.File; Destinazione = ''; Backup = $bk }
+        Write-Log "Archiviata in $(Get-NomeAccount $e.A.Name): $($s.Titolo)"
+    }
+    if ($log.Count) {
+        New-Item -ItemType Directory -Force $Registri | Out-Null
+        $f = Join-Path $Registri "sposta_$stamp.csv"
+        $log | Export-Csv $f -Delimiter ';' -NoTypeInformation -Encoding UTF8
+        Write-Log "Registro: $f"
+        return $f
+    }
+    return $null
+}
+
 # =============================================================================================================
 $radice = Get-RadiceSchede
 $backup = Join-Path (Split-Path $radice -Parent) 'claude-code-sessions-backup'
 $accounts = @(Get-ChildItem $radice -Directory | Where-Object { $_.Name -match '^[0-9a-f-]{36}$' })
 
 # Riga di comando: si usa se e' indicato almeno un parametro operativo; altrimenti si apre la finestra
-$daRigaDiComando = [bool]($Ripristina -or $Da -or $A -or $Sessioni.Count -or $NoGui)
+$daRigaDiComando = [bool]($Ripristina -or $Da -or $A -or $Sessioni.Count -or $NoGui -or $SincArchiviate)
 
 # --- RIGA DI COMANDO ----------------------------------------------------------------------------------------
 if ($daRigaDiComando) {
@@ -309,6 +377,16 @@ if ($daRigaDiComando) {
     $accDa = Resolve-Account $radice $Da
     $accA  = Resolve-Account $radice $A
     if ($accDa.Name -eq $accA.Name) { throw "Origine e destinazione coincidono." }
+    if ($SincArchiviate) {
+        $da = @(Get-DaArchiviare $accDa $accA).Count
+        if ($da -eq 0) { Write-Log "Archiviazione gia' allineata."; return }
+        $chiusa = $false
+        if (-not $Prova) { $chiusa = Close-App }
+        $f = Invoke-SincArchiviate $accDa $accA ([bool]$Prova)
+        if ($f) { Write-Log "Annullare con: -Ripristina `"$f`"" }
+        if (($Riavvia -or $chiusa) -and -not $Prova) { Start-App }
+        return
+    }
     $schede = @(Get-Schede $accDa | Sort-Object UltimaAttivita -Descending)
     if ($Sessioni.Count) { $scelte = @($schede | Where-Object { $Sessioni -contains $_.Id }) }
     else { $scelte = @($schede | Out-GridView -Title "Sessioni da $($Modalita.ToLower()) (Ctrl/Maiusc per sceglierne piu' di una)" -PassThru) }
@@ -391,6 +469,7 @@ $(Get-XamlPannello 'L' 'Account di sinistra')
         <CheckBox x:Name="chRiapri" Content="Riapri l'app alla fine" IsChecked="True" Margin="0,0,0,4"/>
         <CheckBox x:Name="chArchiviate" Content="Mostra archiviate" Margin="0,0,0,12"/>
         <Button x:Name="btAggiorna" Content="Aggiorna" Padding="6,3" Margin="0,0,0,6"/>
+        <Button x:Name="btSincro" Content="Sincronizza archiviate" Padding="6,3" Margin="0,0,0,6" ToolTip="Se una sessione presente in entrambi gli account e' archiviata in uno, la archivia anche nell'altro"/>
         <Button x:Name="btRinomina" Content="Rinomina account..." Padding="6,3" Margin="0,0,0,6" ToolTip="Da' un nome ai due account mostrati (salvato in sposta-config.json)"/>
         <Button x:Name="btRipristina" Content="Ripristina..." Padding="6,3" ToolTip="Annulla un'esecuzione scegliendo il suo registro"/>
       </StackPanel>
@@ -404,7 +483,7 @@ $(Get-XamlPannello 'R' 'Account di destra')
 "@
 $win = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
 $ui = @{}
-foreach ($n in 'cbL','tbL','txL','dgL','cbR','tbR','txR','dgR','btDestra','btSinistra','rbSposta','rbCopia','chProva','chRiapri','chArchiviate','btAggiorna','btRinomina','btRipristina','txStato','tbLog') {
+foreach ($n in 'cbL','tbL','txL','dgL','cbR','tbR','txR','dgR','btDestra','btSinistra','rbSposta','rbCopia','chProva','chRiapri','chArchiviate','btAggiorna','btSincro','btRinomina','btRipristina','txStato','tbLog') {
     $ui[$n] = $win.FindName($n)
 }
 $script:LogBox = $ui.tbLog
@@ -598,6 +677,26 @@ $ui.chArchiviate.Add_Click({ Apply-Filtro 'L'; Apply-Filtro 'R' })
 $ui.btDestra.Add_Click({ Invoke-Freccia 'L' })
 $ui.btSinistra.Add_Click({ Invoke-Freccia 'R' })
 $ui.btAggiorna.Add_Click({ Fill-Account; Update-Tutto })
+# v1.8: archiviazione allineata tra i due account mostrati (archiviata in uno = archiviata in entrambi)
+$ui.btSincro.Add_Click({
+    $aL = Get-AccLato 'L'; $aR = Get-AccLato 'R'
+    if (-not $aL -or -not $aR -or $aL.Name -eq $aR.Name) { [void][Windows.MessageBox]::Show("Scegliere due account diversi.", "Sposta sessioni"); return }
+    try {
+        if ($ui.chProva.IsChecked) {
+            [void](Invoke-SincArchiviate $aL $aR $true)
+            Write-Log "(anteprima: nessuna modifica; togliere 'Solo anteprima' per eseguire)"
+            return
+        }
+        $n = @(Get-DaArchiviare $aL $aR).Count
+        if ($n -eq 0) { Write-Log "Archiviazione gia' allineata: nessuna scheda da modificare."; return }
+        if ([Windows.MessageBox]::Show("Archiviare $n schede per allinearle all'altro account.`n`nL'app desktop di Claude verra' chiusa. Procedere?", "Sposta sessioni", 'YesNo', 'Question') -ne 'Yes') { return }
+        [void](Close-App)
+        $f = Invoke-SincArchiviate $aL $aR $false
+        if ($f) { Write-Log "Per annullare: 'Ripristina...' e scegliere $([IO.Path]::GetFileName($f))" }
+        if ($ui.chRiapri.IsChecked) { Start-App }
+    } catch { Write-Log "ERRORE: $($_.Exception.Message)" }
+    Fill-Account; Update-Tutto
+})
 # v1.3: dare un nome agli account mostrati (salvato in sposta-config.json, vale anche per la riga di comando)
 $ui.btRinomina.Add_Click({
     Add-Type -AssemblyName Microsoft.VisualBasic

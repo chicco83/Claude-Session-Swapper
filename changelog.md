@@ -1,6 +1,13 @@
 # Changelog — Sposta-SessioniClaude
 
-**Versione corrente:** 1.7 — 2026-10-26 20:04 (Europe/Rome)
+**Versione corrente:** 1.8 — 2026-11-26 09:30 (Europe/Rome)
+
+## v1.8 — 2026-11-26 09:21
+- **Sincronizzazione dell'archiviazione.** Prima: lo stato "archiviata" sta nella scheda di ogni account (campo `isArchived`), quindi archiviare una sessione conclusa in un account la lasciava attiva nell'altro (sul PC dell'utente: 30 sessioni presenti in entrambi, 6 con stato diverso). Ora: pulsante **Sincronizza archiviate** (e `-SincArchiviate` da riga di comando con `-Da`/`-A`) archivia nell'altro account le sessioni archiviate in uno solo.
+- **Regola:** archiviata in uno = archiviata in entrambi. Il ripristino dall'archivio non si propaga (altrimenti una sessione riaperta in un account verrebbe riarchiviata dall'altro).
+- **Sicurezza:** chiude l'app come le altre operazioni (solo se c'è qualcosa da fare); prima di modificare copia la scheda in `claude-code-sessions-backup\<data-ora>\`; modifica solo il campo (`"isArchived":false` → `true`), il resto del file resta identico; scrive il registro CSV con `Azione = Archivia`; **Ripristina...** rimette la scheda com'era. Con **Solo anteprima** elenca le schede senza modificare nulla.
+- **Verificato (2026-11-26):** parser PowerShell 0 errori; prova in sola lettura sui due account dell'utente: individua le 6 schede con stato diverso (5 da archiviare nell'account di lavoro, 1 in quello personale); prova di scrittura su una **copia** di scheda: cambia solo `isArchived` (testo identico per il resto). **Non provato:** il pulsante e l'operazione reale sulle schede vere, il Ripristina di un'archiviazione.
+- **Rollback:** tornare alla versione precedente dello script (`Sposta-SessioniClaude_v1.7_2026-10-26_2004.ps1`, in locale); per annullare un'archiviazione già fatta: **Ripristina...** col suo registro.
 
 ## Documentazione — 2026-10-26 20:20
 - README: aggiunta la sezione "Problemi comuni" (italiano e inglese). Confermato dall'utente: Sposta/Copia funziona e l'app Claude si riapre correttamente dopo l'operazione (nello stesso PC).
