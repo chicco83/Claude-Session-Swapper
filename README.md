@@ -38,13 +38,17 @@ Una sessione compare nell'app solo nell'account che ha la sua "scheda" (`local_<
 - Le sessioni presenti in **tutti e due** gli account stanno sulla **stessa riga**; dove manca c'è una riga grigia vuota. I pannelli scorrono insieme.
 - Ordine: per progetto (il più recente prima), poi per ultima attività. Le intestazioni non ordinano (romperebbe l'allineamento).
 
+### Sincronizzazione automatica all'avvio
+
+All'apertura della finestra lo script controlla da solo tutte le coppie di account e allinea le sessioni presenti in più account: **archiviata in uno = archiviata in tutti** e **scheda più vecchia aggiornata con la più recente** (così, passando da un account all'altro, trovi sempre la versione aggiornata). Se l'app Claude è aperta chiede una sola conferma, perché va chiusa e riaperta; se è chiusa non chiede nulla. Il pulsante **Sincronizza ora** ripete il controllo durante l'uso. Nella riga di stato un **contatore** mostra quante schede sono state archiviate e aggiornate in questo avvio e in totale (`sposta-statistiche.json`, accanto allo script). Per disattivarla: `-NoSincAvvio` oppure `"sincAvvio": false` in `sposta-config.json`.
+
 ### Archiviazione sincronizzata
 
-Lo stato "archiviata" sta nella scheda di ciascun account: archiviando una sessione conclusa in un account, nell'altro resta attiva. Il pulsante **Sincronizza archiviate** (o `-SincArchiviate` con `-Da` e `-A`) archivia nell'altro account le sessioni presenti in entrambi che sono archiviate in uno solo. Regola: archiviata in uno = archiviata in entrambi; il ripristino dall'archivio non si propaga. Prima di modificare la scheda ne tiene una copia di backup e scrive il registro, quindi **Ripristina...** la annulla.
+Lo stato "archiviata" sta nella scheda di ciascun account: archiviando una sessione conclusa in un account, nell'altro resta attiva. All'avvio (o con `-SincArchiviate`, `-Da` e `-A`) lo script archivia nell'altro account le sessioni presenti in entrambi che sono archiviate in uno solo. Regola: archiviata in uno = archiviata in entrambi; il ripristino dall'archivio non si propaga. Prima di modificare la scheda ne tiene una copia di backup e scrive il registro, quindi **Ripristina...** la annulla.
 
 ### Schede aggiornate alla più recente
 
-Una sessione presente in due account ha due schede: se la usi con un solo account, solo la sua scheda si aggiorna (data, titolo, turni), l'altra resta indietro. **Sincronizza alla più recente** (o `-SincRecenti` con `-Da` e `-A`) aggiorna, per ogni sessione presente in entrambi, la scheda più vecchia con i dati di quella più recente (titolo, data di ultima attività, turni completati, ultima risposta, modello). Non copia ciò che è proprio dell'account (connettori, controllo remoto, archiviazione). La conversazione è già comune e non viene toccata. Backup e registro come per le altre operazioni.
+Una sessione presente in due account ha due schede: se la usi con un solo account, solo la sua scheda si aggiorna (data, titolo, turni), l'altra resta indietro. All'avvio (o con `-SincRecenti`, `-Da` e `-A`) lo script aggiorna, per ogni sessione presente in entrambi, la scheda più vecchia con i dati di quella più recente (titolo, data di ultima attività, turni completati, ultima risposta, modello). Non copia ciò che è proprio dell'account (connettori, controllo remoto, archiviazione). La conversazione è già comune e non viene toccata. Backup e registro come per le altre operazioni.
 
 ### Riga di comando
 
@@ -131,13 +135,17 @@ The UI labels are in Italian.
 - Sessions present in **both** accounts sit on the **same row**; a grey blank row fills the gap on the other side. The panes scroll together.
 - Order: by project (most recent first), then by last activity. Column headers do not sort (it would break the alignment).
 
+#### Automatic sync at startup
+
+When the window opens the script checks every pair of accounts by itself and aligns the sessions present in more than one account: **archived in one = archived in all** and **older card updated with the most recent one** (so when you switch accounts you always find the up-to-date version). If the Claude app is open it asks for a single confirmation, because the app must be closed and reopened; if it is closed it asks nothing. The **Sincronizza ora** button repeats the check while you work. A **counter** in the status line shows how many cards were archived and updated in this run and in total (`sposta-statistiche.json`, next to the script). To turn it off: `-NoSincAvvio` or `"sincAvvio": false` in `sposta-config.json`.
+
 #### Synchronized archiving
 
-The "archived" state lives in each account's card: archiving a finished session in one account leaves it active in the other. The **Sincronizza archiviate** button (or `-SincArchiviate` with `-Da` and `-A`) archives, in the other account, the sessions present in both that are archived in only one. Rule: archived in one = archived in both; un-archiving does not propagate. The card is backed up before it is changed and the action is logged, so **Ripristina...** undoes it.
+The "archived" state lives in each account's card: archiving a finished session in one account leaves it active in the other. At startup (or with `-SincArchiviate`, `-Da` and `-A`) the script archives, in the other account, the sessions present in both that are archived in only one. Rule: archived in one = archived in both; un-archiving does not propagate. The card is backed up before it is changed and the action is logged, so **Ripristina...** undoes it.
 
 #### Cards updated to the most recent
 
-A session present in two accounts has two cards: if you use it with one account only, only that card is updated (date, title, turns) and the other falls behind. **Sincronizza alla più recente** (or `-SincRecenti` with `-Da` and `-A`) updates, for every session present in both, the older card with the data of the more recent one (title, last-activity date, completed turns, last reply, model). It does not copy what belongs to the account (connectors, remote control, archiving). The conversation is already shared and is not touched. Backup and log work as for the other operations.
+A session present in two accounts has two cards: if you use it with one account only, only that card is updated (date, title, turns) and the other falls behind. At startup (or with `-SincRecenti`, `-Da` and `-A`) the script updates, for every session present in both, the older card with the data of the more recent one (title, last-activity date, completed turns, last reply, model). It does not copy what belongs to the account (connectors, remote control, archiving). The conversation is already shared and is not touched. Backup and log work as for the other operations.
 
 #### Command line
 
@@ -184,6 +192,7 @@ Limits: Windows only; sees only the accounts of the current Windows user; with s
 
 | Data | Prima | Dopo | Perché |
 |---|---|---|---|
+| 2026-11-26 | archiviazione e ultima versione si allineavano premendo due pulsanti | sincronizzazione automatica all'avvio, un solo pulsante **Sincronizza ora**, contatore delle sincronizzazioni, `-NoSincAvvio` | farla a mano non aveva senso; backup/registri con i millisecondi |
 | 2026-11-26 | usando una sessione con un solo account, la scheda dell'altro restava indietro (data, titolo, turni) | pulsante **Sincronizza alla più recente** e `-SincRecenti` | tornando sull'altro account la sessione appariva non aggiornata |
 | 2026-11-26 | l'archiviazione valeva solo nell'account in cui si archiviava | pulsante **Sincronizza archiviate** e `-SincArchiviate` | una sessione conclusa restava visibile nell'altro account |
 | 2026-10-26 | solo script base | aggiunti colori per progetto, righe allineate, intestazioni "cartella", account portabili, console nascosta, tabella problemi comuni | uso su altri PC e comodità di lettura |

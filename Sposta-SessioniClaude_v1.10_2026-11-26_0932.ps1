@@ -1,6 +1,17 @@
 ﻿# =============================================================================
-# Sposta-SessioniClaude_v1.9_2026-11-26_0926.ps1
-# Versione: 1.9 - 2026-11-26 09:26 (Europe/Rome)
+# Sposta-SessioniClaude_v1.10_2026-11-26_0932.ps1
+# Versione: 1.10 - 2026-11-26 09:32 (Europe/Rome)
+# v1.10: sincronizzazione AUTOMATICA all'avvio. All'apertura della finestra lo script controlla tutte le coppie di account e,
+#        se ci sono sessioni presenti in piu' account con schede diverse, le allinea da solo: archiviate in uno =
+#        archiviate in tutti (v1.8) e scheda piu' vecchia aggiornata con quella piu' recente (v1.9). Se l'app Claude e'
+#        aperta chiede UNA conferma (va chiusa e riaperta); se e' chiusa non chiede nulla. I due pulsanti manuali sono
+#        sostituiti da un solo "Sincronizza ora" (stessa logica, utile se si lavora mentre la finestra e' aperta).
+#        Contatore: a ogni avvio aggiorna sposta-statistiche.json (accanto allo script) e mostra quante schede ha
+#        archiviato e quante ha aggiornato in questo avvio e in totale. Si disattiva con -NoSincAvvio o con
+#        "sincAvvio": false in sposta-config.json. Backup e registro per ogni modifica come prima (Ripristina...).
+#        Corretto anche: nome di backup e di registro con i millisecondi (due operazioni nello stesso secondo non si
+#        sovrascrivono piu').
+# (v1.9 2026-11-26 09:26: sincronizzazione sulla scheda piu' recente, con pulsante)
 # v1.9: sincronizzazione sulla scheda piu' recente. Una sessione presente in due account ha due schede; usandola con un
 #       account solo la sua scheda si aggiorna (data, titolo, turni completati...), quella dell'altro account resta
 #       indietro. Nuovo pulsante "Sincronizza alla piu' recente" (e -SincRecenti da riga di comando): per ogni sessione
@@ -70,12 +81,12 @@
 #   - ogni operazione e' scritta in un registro CSV (delimitatore ';'); -Ripristina <registro> la annulla.
 #
 # Uso (PowerShell, utente corrente, senza admin):
-#   .\Sposta-SessioniClaude_v1.9_2026-11-26_0926.ps1                       # FINESTRA: due pannelli (account per lato), frecce per spostare/copiare
+#   .\Sposta-SessioniClaude_v1.10_2026-11-26_0932.ps1                       # FINESTRA: due pannelli (account per lato), frecce per spostare/copiare
 #   (oppure tasto destro sul file -> Esegui con PowerShell)
-#   .\Sposta-SessioniClaude_v1.9_2026-11-26_0926.ps1 -Da personale -A lavoro
-#   .\Sposta-SessioniClaude_v1.9_2026-11-26_0926.ps1 -Da lavoro -A personale -Modalita Copia -Riavvia
-#   .\Sposta-SessioniClaude_v1.9_2026-11-26_0926.ps1 -Da personale -A lavoro -Sessioni 0c7c0e04-bcde-4f39-acc0-bc4cf6eea68a
-#   .\Sposta-SessioniClaude_v1.9_2026-11-26_0926.ps1 -Ripristina "<cartella tool>\registri\sposta_20261026_1620.csv"
+#   .\Sposta-SessioniClaude_v1.10_2026-11-26_0932.ps1 -Da personale -A lavoro
+#   .\Sposta-SessioniClaude_v1.10_2026-11-26_0932.ps1 -Da lavoro -A personale -Modalita Copia -Riavvia
+#   .\Sposta-SessioniClaude_v1.10_2026-11-26_0932.ps1 -Da personale -A lavoro -Sessioni 0c7c0e04-bcde-4f39-acc0-bc4cf6eea68a
+#   .\Sposta-SessioniClaude_v1.10_2026-11-26_0932.ps1 -Ripristina "<cartella tool>\registri\sposta_20261026_1620.csv"
 #   -Prova  : mostra cosa farebbe senza modificare nulla
 # =============================================================================
 [CmdletBinding()]
@@ -90,7 +101,8 @@ param(
     [switch]$NoGui,                                    # v1.1: riga di comando anche senza altri parametri
     [switch]$MostraConsole,                            # v1.7: non nascondere la finestra di PowerShell (diagnosi)
     [switch]$SincArchiviate,                           # v1.8: da riga di comando, allinea l'archiviazione tra -Da e -A
-    [switch]$SincRecenti                               # v1.9: da riga di comando, allinea le schede sulla piu' recente
+    [switch]$SincRecenti,                              # v1.9: da riga di comando, allinea le schede sulla piu' recente
+    [switch]$NoSincAvvio                               # v1.10: non sincronizzare all'avvio della finestra
 )
 
 $ErrorActionPreference = 'Stop'
@@ -117,6 +129,7 @@ trap {
 if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui -or $SincArchiviate -or $SincRecenti) -and -not $env:SPOSTA_FIGLIO) {
     $exe = (Get-Process -Id $PID).Path
     $argomenti = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"")
+    if ($NoSincAvvio) { $argomenti += '-NoSincAvvio' }
     $env:SPOSTA_FIGLIO = '1'                            # ereditata dal figlio: evita il rilancio infinito
     if ($MostraConsole) {
         & $exe @argomenti -MostraConsole
@@ -135,7 +148,8 @@ if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui -or $SincArc
 # 2026-10-26 v1.6: $Version = "1.6"
 # 2026-10-26 v1.7: $Version = "1.7"
 # 2026-11-26 v1.8: $Version = "1.8"
-$Version = "1.9"
+# 2026-11-26 v1.9: $Version = "1.9"
+$Version = "1.10"
 
 # --- Configurazione (v1.3): UUID account -> etichetta, letta da sposta-config.json accanto allo script ---
 # 2026-10-26 v1.2: etichette scritte nel codice ($Etichette = @{ '<uuid>' = 'personale'; '<uuid>' = 'lavoro' }); sostituite
@@ -150,8 +164,12 @@ if (Test-Path $ConfigFile) {
         foreach ($p in $cfg.etichette.PSObject.Properties) { $Etichette[$p.Name.ToLower()] = [string]$p.Value }
     } catch { Write-Warning "sposta-config.json non leggibile, etichette ignorate: $($_.Exception.Message)" }
 }
+# v1.10: sincronizzazione all'avvio attiva di default; si spegne con "sincAvvio": false nel file di configurazione
+$SincAvvio = $true
+if ($cfg -and $cfg.PSObject.Properties['sincAvvio']) { $SincAvvio = [bool]$cfg.sincAvvio }
 function Save-Etichette {
     $o = [ordered]@{ etichette = [ordered]@{} }
+    if (-not $script:SincAvvio) { $o.sincAvvio = $false }                    # v1.10: non perdere l'impostazione
     foreach ($k in ($Etichette.Keys | Sort-Object)) { $o.etichette[$k] = $Etichette[$k] }
     ($o | ConvertTo-Json -Depth 4) | Set-Content $ConfigFile -Encoding UTF8
 }
@@ -346,7 +364,7 @@ function Set-SchedaArchiviata([string]$file) {
 function Invoke-SincArchiviate($accA, $accB, [bool]$prova) {
     $lista = @(Get-DaArchiviare $accA $accB)
     Write-Log "Sincronizza archiviate tra $(Get-NomeAccount $accA.Name) e $(Get-NomeAccount $accB.Name): $($lista.Count) schede da archiviare"
-    $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $stamp = Get-Date -Format 'yyyyMMdd_HHmmss_fff'                            # v1.10: millisecondi (2026-11-26 v1.8: 'yyyyMMdd_HHmmss')
     $log = @()
     foreach ($e in $lista) {
         $s = $e.Scheda
@@ -359,6 +377,7 @@ function Invoke-SincArchiviate($accA, $accB, [bool]$prova) {
                                    Da = (Get-NomeAccount $e.Da.Name); A = (Get-NomeAccount $e.A.Name)
                                    Origine = $s.File; Destinazione = ''; Backup = $bk }
         Write-Log "Archiviata in $(Get-NomeAccount $e.A.Name): $($s.Titolo)"
+        Add-Stat 'Archiviate' 1
     }
     if ($log.Count) {
         New-Item -ItemType Directory -Force $Registri | Out-Null
@@ -409,7 +428,7 @@ function Update-SchedaDa([string]$sorgente, [string]$dest) {
 function Invoke-SincRecenti($accA, $accB, [bool]$prova) {
     $lista = @(Get-DaAggiornare $accA $accB)
     Write-Log "Sincronizza alla piu' recente tra $(Get-NomeAccount $accA.Name) e $(Get-NomeAccount $accB.Name): $($lista.Count) schede da aggiornare"
-    $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $stamp = Get-Date -Format 'yyyyMMdd_HHmmss_fff'                            # v1.10: millisecondi (2026-11-26 v1.9: 'yyyyMMdd_HHmmss')
     $log = @()
     foreach ($e in $lista) {
         $s = $e.Scheda; $f = $e.Sorgente
@@ -423,6 +442,7 @@ function Invoke-SincRecenti($accA, $accB, [bool]$prova) {
                                    Da = (Get-NomeAccount $e.Da.Name); A = (Get-NomeAccount $e.A.Name)
                                    Origine = $s.File; Destinazione = ''; Backup = $bk }
         Write-Log "Aggiornata in $(Get-NomeAccount $e.A.Name): $($f.Titolo) ($quando)"
+        Add-Stat 'Aggiornate' 1
     }
     if ($log.Count) {
         New-Item -ItemType Directory -Force $Registri | Out-Null
@@ -432,6 +452,60 @@ function Invoke-SincRecenti($accA, $accB, [bool]$prova) {
         return $r
     }
     return $null
+}
+
+# --- v1.10: contatore delle sincronizzazioni e sincronizzazione automatica all'avvio -------------------------------
+# sposta-statistiche.json (accanto allo script): quante schede sono state archiviate e aggiornate da sempre, e quanti avvii.
+$StatFile = Join-Path $PSScriptRoot 'sposta-statistiche.json'
+$Stat = [pscustomobject]@{ avvii = 0; archiviate = 0; aggiornate = 0; ultimoAvvio = '' }
+if (Test-Path $StatFile) {
+    try {
+        $js = Get-Content $StatFile -Raw -Encoding UTF8 | ConvertFrom-Json
+        foreach ($p in 'avvii', 'archiviate', 'aggiornate') { if ($js.PSObject.Properties[$p]) { $Stat.$p = [int]$js.$p } }
+    } catch { Write-Warning "sposta-statistiche.json non leggibile, contatori ripartiti da zero: $($_.Exception.Message)" }
+}
+$ContaAvvio = @{ Archiviate = 0; Aggiornate = 0 }                              # solo questo avvio
+function Save-Stat {
+    $o = [ordered]@{ avvii = $Stat.avvii; archiviate = $Stat.archiviate; aggiornate = $Stat.aggiornate; ultimoAvvio = $Stat.ultimoAvvio }
+    try { ($o | ConvertTo-Json) | Set-Content $StatFile -Encoding UTF8 } catch { Write-Log "Contatori non salvati: $($_.Exception.Message)" }
+}
+function Add-Stat([string]$tipo, [int]$n) {
+    $ContaAvvio[$tipo] += $n
+    if ($tipo -eq 'Archiviate') { $Stat.archiviate += $n } else { $Stat.aggiornate += $n }
+    Save-Stat
+}
+function Get-TestoStat {
+    "Sincronizzazioni: in questo avvio $($ContaAvvio.Archiviate) archiviate e $($ContaAvvio.Aggiornate) aggiornate  |  totale $($Stat.archiviate) archiviate e $($Stat.aggiornate) aggiornate in $($Stat.avvii) avvii"
+}
+# Tutte le coppie di account (con due account: una sola)
+function Get-Coppie {
+    $c = @()
+    for ($i = 0; $i -lt $accounts.Count; $i++) { for ($j = $i + 1; $j -lt $accounts.Count; $j++) { $c += [pscustomobject]@{ A = $accounts[$i]; B = $accounts[$j] } } }
+    return $c
+}
+# Allinea archiviazione e ultima versione per tutte le coppie. $avvio = all'avvio (nessuna anteprima, una sola conferma se l'app e' aperta)
+function Invoke-SincTutto([bool]$avvio) {
+    if ($accounts.Count -lt 2) { return }
+    $coppie = @(Get-Coppie)
+    $prova = (-not $avvio) -and [bool]$ui.chProva.IsChecked
+    $nArch = 0; $nRec = 0
+    foreach ($c in $coppie) { $nArch += @(Get-DaArchiviare $c.A $c.B).Count; $nRec += @(Get-DaAggiornare $c.A $c.B).Count }
+    if (($nArch + $nRec) -eq 0) { Write-Log "Sessioni gia' allineate tra gli account (archiviazione e ultima versione): nessuna sincronizzazione necessaria."; return }
+    if ($prova) {
+        foreach ($c in $coppie) { [void](Invoke-SincRecenti $c.A $c.B $true); [void](Invoke-SincArchiviate $c.A $c.B $true) }
+        Write-Log "(anteprima: nessuna modifica; togliere 'Solo anteprima' per eseguire)"
+        return
+    }
+    if ((Get-ProcessiApp).Count -gt 0) {
+        $msg = "Per allineare le sessioni presenti in piu' account ($nRec da aggiornare all'ultima versione, $nArch da archiviare) l'app Claude va chiusa e poi riaperta.`n`nProcedere ora?"
+        if ([Windows.MessageBox]::Show($msg, "Sposta sessioni", 'YesNo', 'Question') -ne 'Yes') {
+            Write-Log "Sincronizzazione rimandata: $nRec da aggiornare, $nArch da archiviare ('Sincronizza ora' quando vuoi)."
+            return
+        }
+    }
+    $chiusa = Close-App
+    foreach ($c in $coppie) { [void](Invoke-SincRecenti $c.A $c.B $false); [void](Invoke-SincArchiviate $c.A $c.B $false) }
+    if ($chiusa -and $ui.chRiapri.IsChecked) { Start-App }                    # riapre solo se l'aveva chiusa lei
 }
 
 # =============================================================================================================
@@ -444,7 +518,7 @@ $daRigaDiComando = [bool]($Ripristina -or $Da -or $A -or $Sessioni.Count -or $No
 
 # --- RIGA DI COMANDO ----------------------------------------------------------------------------------------
 if ($daRigaDiComando) {
-    Write-Log "Sposta-SessioniClaude v$Version  |  schede: $radice"
+    Write-Log "Sposta-SessioniClaude v$Version  |  schede: $radice`n$(Get-TestoStat)"
     if ($Ripristina) { Invoke-Ripristino $Ripristina ([bool]$Prova) ([bool]$Riavvia); return }
     if ($accounts.Count -lt 2) { throw "Sul PC c'e' un solo account nell'app desktop: niente da spostare." }
     if (-not $Da -or -not $A) { throw "Da riga di comando servono -Da e -A (oppure lanciare senza parametri per la finestra)." }
@@ -553,8 +627,7 @@ $(Get-XamlPannello 'L' 'Account di sinistra')
         <CheckBox x:Name="chRiapri" Content="Riapri l'app alla fine" IsChecked="True" Margin="0,0,0,4"/>
         <CheckBox x:Name="chArchiviate" Content="Mostra archiviate" Margin="0,0,0,12"/>
         <Button x:Name="btAggiorna" Content="Aggiorna" Padding="6,3" Margin="0,0,0,6"/>
-        <Button x:Name="btSincro" Content="Sincronizza archiviate" Padding="6,3" Margin="0,0,0,6" ToolTip="Se una sessione presente in entrambi gli account e' archiviata in uno, la archivia anche nell'altro"/>
-        <Button x:Name="btRecenti" Content="Sincronizza alla piu' recente" Padding="6,3" Margin="0,0,0,6" ToolTip="Per le sessioni presenti in entrambi gli account, aggiorna la scheda piu' vecchia (data, titolo, turni) con quella piu' recente"/>
+        <Button x:Name="btSincro" Content="Sincronizza ora" Padding="6,3" Margin="0,0,0,6" ToolTip="Allinea tra gli account l'archiviazione e l'ultima versione delle sessioni presenti in piu' account (avviene gia' da sola all'avvio)"/>
         <Button x:Name="btRinomina" Content="Rinomina account..." Padding="6,3" Margin="0,0,0,6" ToolTip="Da' un nome ai due account mostrati (salvato in sposta-config.json)"/>
         <Button x:Name="btRipristina" Content="Ripristina..." Padding="6,3" ToolTip="Annulla un'esecuzione scegliendo il suo registro"/>
       </StackPanel>
@@ -568,7 +641,7 @@ $(Get-XamlPannello 'R' 'Account di destra')
 "@
 $win = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
 $ui = @{}
-foreach ($n in 'cbL','tbL','txL','dgL','cbR','tbR','txR','dgR','btDestra','btSinistra','rbSposta','rbCopia','chProva','chRiapri','chArchiviate','btAggiorna','btSincro','btRecenti','btRinomina','btRipristina','txStato','tbLog') {
+foreach ($n in 'cbL','tbL','txL','dgL','cbR','tbR','txR','dgR','btDestra','btSinistra','rbSposta','rbCopia','chProva','chRiapri','chArchiviate','btAggiorna','btSincro','btRinomina','btRipristina','txStato','tbLog') {
     $ui[$n] = $win.FindName($n)
 }
 $script:LogBox = $ui.tbLog
@@ -762,44 +835,9 @@ $ui.chArchiviate.Add_Click({ Apply-Filtro 'L'; Apply-Filtro 'R' })
 $ui.btDestra.Add_Click({ Invoke-Freccia 'L' })
 $ui.btSinistra.Add_Click({ Invoke-Freccia 'R' })
 $ui.btAggiorna.Add_Click({ Fill-Account; Update-Tutto })
-# v1.8: archiviazione allineata tra i due account mostrati (archiviata in uno = archiviata in entrambi)
+# v1.10: un solo pulsante manuale (all'avvio la sincronizzazione parte da sola)
 $ui.btSincro.Add_Click({
-    $aL = Get-AccLato 'L'; $aR = Get-AccLato 'R'
-    if (-not $aL -or -not $aR -or $aL.Name -eq $aR.Name) { [void][Windows.MessageBox]::Show("Scegliere due account diversi.", "Sposta sessioni"); return }
-    try {
-        if ($ui.chProva.IsChecked) {
-            [void](Invoke-SincArchiviate $aL $aR $true)
-            Write-Log "(anteprima: nessuna modifica; togliere 'Solo anteprima' per eseguire)"
-            return
-        }
-        $n = @(Get-DaArchiviare $aL $aR).Count
-        if ($n -eq 0) { Write-Log "Archiviazione gia' allineata: nessuna scheda da modificare."; return }
-        if ([Windows.MessageBox]::Show("Archiviare $n schede per allinearle all'altro account.`n`nL'app desktop di Claude verra' chiusa. Procedere?", "Sposta sessioni", 'YesNo', 'Question') -ne 'Yes') { return }
-        [void](Close-App)
-        $f = Invoke-SincArchiviate $aL $aR $false
-        if ($f) { Write-Log "Per annullare: 'Ripristina...' e scegliere $([IO.Path]::GetFileName($f))" }
-        if ($ui.chRiapri.IsChecked) { Start-App }
-    } catch { Write-Log "ERRORE: $($_.Exception.Message)" }
-    Fill-Account; Update-Tutto
-})
-# v1.9: schede allineate sulla piu' recente (le sessioni presenti in entrambi gli account hanno la stessa data e lo stesso titolo)
-$ui.btRecenti.Add_Click({
-    $aL = Get-AccLato 'L'; $aR = Get-AccLato 'R'
-    if (-not $aL -or -not $aR -or $aL.Name -eq $aR.Name) { [void][Windows.MessageBox]::Show("Scegliere due account diversi.", "Sposta sessioni"); return }
-    try {
-        if ($ui.chProva.IsChecked) {
-            [void](Invoke-SincRecenti $aL $aR $true)
-            Write-Log "(anteprima: nessuna modifica; togliere 'Solo anteprima' per eseguire)"
-            return
-        }
-        $n = @(Get-DaAggiornare $aL $aR).Count
-        if ($n -eq 0) { Write-Log "Schede gia' allineate sulla piu' recente: nessuna da modificare."; return }
-        if ([Windows.MessageBox]::Show("Aggiornare $n schede con i dati della scheda piu' recente dell'altro account.`n`nL'app desktop di Claude verra' chiusa. Procedere?", "Sposta sessioni", 'YesNo', 'Question') -ne 'Yes') { return }
-        [void](Close-App)
-        $f = Invoke-SincRecenti $aL $aR $false
-        if ($f) { Write-Log "Per annullare: 'Ripristina...' e scegliere $([IO.Path]::GetFileName($f))" }
-        if ($ui.chRiapri.IsChecked) { Start-App }
-    } catch { Write-Log "ERRORE: $($_.Exception.Message)" }
+    try { Invoke-SincTutto $false } catch { Write-Log "ERRORE: $($_.Exception.Message)" }
     Fill-Account; Update-Tutto
 })
 # v1.3: dare un nome agli account mostrati (salvato in sposta-config.json, vale anche per la riga di comando)
@@ -844,6 +882,17 @@ function Find-ScrollViewer($o) {
     return $null
 }
 $win.Add_ContentRendered({
+    if (-not $script:AvvioFatto) {                                             # v1.10: una volta sola, dopo la comparsa della finestra
+        $script:AvvioFatto = $true
+        $Stat.avvii++; $Stat.ultimoAvvio = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'); Save-Stat
+        if ($NoSincAvvio -or -not $SincAvvio) { Write-Log "Sincronizzazione all'avvio disattivata." }
+        else {
+            Write-Log "Controllo le sessioni presenti in piu' account..."
+            try { Invoke-SincTutto $true } catch { Write-Log "ERRORE nella sincronizzazione all'avvio: $($_.Exception.Message)" }
+        }
+        Fill-Account; Update-Tutto
+        Write-Log (Get-TestoStat)
+    }
     $Lati.L.sv = Find-ScrollViewer $ui.dgL
     $Lati.R.sv = Find-ScrollViewer $ui.dgR
     if ($Lati.L.sv -and $Lati.R.sv) {
@@ -1163,4 +1212,49 @@ if (-not ($Da -or $A -or $Sessioni.Count -or $Ripristina -or $NoGui) -and
     & $exe -STA -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath
     exit $LASTEXITCODE
 }
+#>
+
+# =============================================================================================================
+# 2026-11-26 v1.8/v1.9 - gestori dei due pulsanti manuali (Sincronizza archiviate, Sincronizza alla piu' recente), sostituiti dalla v1.10:
+<#
+# v1.8: archiviazione allineata tra i due account mostrati (archiviata in uno = archiviata in entrambi)
+$ui.btSincro.Add_Click({
+    $aL = Get-AccLato 'L'; $aR = Get-AccLato 'R'
+    if (-not $aL -or -not $aR -or $aL.Name -eq $aR.Name) { [void][Windows.MessageBox]::Show("Scegliere due account diversi.", "Sposta sessioni"); return }
+    try {
+        if ($ui.chProva.IsChecked) {
+            [void](Invoke-SincArchiviate $aL $aR $true)
+            Write-Log "(anteprima: nessuna modifica; togliere 'Solo anteprima' per eseguire)"
+            return
+        }
+        $n = @(Get-DaArchiviare $aL $aR).Count
+        if ($n -eq 0) { Write-Log "Archiviazione gia' allineata: nessuna scheda da modificare."; return }
+        if ([Windows.MessageBox]::Show("Archiviare $n schede per allinearle all'altro account.`n`nL'app desktop di Claude verra' chiusa. Procedere?", "Sposta sessioni", 'YesNo', 'Question') -ne 'Yes') { return }
+        [void](Close-App)
+        $f = Invoke-SincArchiviate $aL $aR $false
+        if ($f) { Write-Log "Per annullare: 'Ripristina...' e scegliere $([IO.Path]::GetFileName($f))" }
+        if ($ui.chRiapri.IsChecked) { Start-App }
+    } catch { Write-Log "ERRORE: $($_.Exception.Message)" }
+    Fill-Account; Update-Tutto
+})
+# v1.9: schede allineate sulla piu' recente (le sessioni presenti in entrambi gli account hanno la stessa data e lo stesso titolo)
+$ui.btRecenti.Add_Click({
+    $aL = Get-AccLato 'L'; $aR = Get-AccLato 'R'
+    if (-not $aL -or -not $aR -or $aL.Name -eq $aR.Name) { [void][Windows.MessageBox]::Show("Scegliere due account diversi.", "Sposta sessioni"); return }
+    try {
+        if ($ui.chProva.IsChecked) {
+            [void](Invoke-SincRecenti $aL $aR $true)
+            Write-Log "(anteprima: nessuna modifica; togliere 'Solo anteprima' per eseguire)"
+            return
+        }
+        $n = @(Get-DaAggiornare $aL $aR).Count
+        if ($n -eq 0) { Write-Log "Schede gia' allineate sulla piu' recente: nessuna da modificare."; return }
+        if ([Windows.MessageBox]::Show("Aggiornare $n schede con i dati della scheda piu' recente dell'altro account.`n`nL'app desktop di Claude verra' chiusa. Procedere?", "Sposta sessioni", 'YesNo', 'Question') -ne 'Yes') { return }
+        [void](Close-App)
+        $f = Invoke-SincRecenti $aL $aR $false
+        if ($f) { Write-Log "Per annullare: 'Ripristina...' e scegliere $([IO.Path]::GetFileName($f))" }
+        if ($ui.chRiapri.IsChecked) { Start-App }
+    } catch { Write-Log "ERRORE: $($_.Exception.Message)" }
+    Fill-Account; Update-Tutto
+})
 #>

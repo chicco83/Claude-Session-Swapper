@@ -1,6 +1,15 @@
 # Changelog — Sposta-SessioniClaude
 
-**Versione corrente:** 1.9 — 2026-11-26 09:40 (Europe/Rome)
+**Versione corrente:** 1.10 — 2026-11-26 09:50 (Europe/Rome)
+
+## v1.10 — 2026-11-26 09:32
+- **Sincronizzazione automatica all'avvio.** Prima: archiviazione e ultima versione si allineavano solo premendo due pulsanti. Ora: all'apertura della finestra lo script controlla tutte le coppie di account e allinea da solo le sessioni presenti in più account (archiviata in uno = archiviata in tutti; scheda più vecchia aggiornata con quella più recente). Se l'app Claude è aperta chiede **una** conferma (va chiusa e riaperta); se è chiusa non chiede nulla e non la riapre. I due pulsanti manuali sono sostituiti da **Sincronizza ora** (stessa logica, con **Solo anteprima** funziona come anteprima).
+- **Contatore:** a ogni avvio aggiorna `sposta-statistiche.json` (accanto allo script, ignorato da git) e mostra nella riga di stato e nel registro dei messaggi quante schede sono state archiviate e aggiornate in questo avvio e in totale, con il numero di avvii. Esempio: «in questo avvio 6 archiviate e 12 aggiornate | totale 6 archiviate e 12 aggiornate in 1 avvii».
+- **Si disattiva** con `-NoSincAvvio` oppure con `"sincAvvio": false` in `sposta-config.json` (il salvataggio dei nomi con **Rinomina account...** lo conserva).
+- **Corretto:** i backup e i registri di due operazioni nello stesso secondo si sovrascrivevano (un Ripristina avrebbe rimesso la scheda a metà); ora il nome ha i millisecondi (`yyyyMMdd_HHmmss_fff`).
+- **Con più di due account** sincronizza tutte le coppie (A–B, A–C, B–C), così la versione più recente arriva a tutti.
+- **Verificato (2026-11-26):** parser PowerShell 0 errori; anteprima in sola lettura su due account: 12 schede da aggiornare e 6 da archiviare (le stesse delle prove precedenti); contatori provati in un file temporaneo: sommano, si salvano e si rileggono al secondo avvio (3 archiviate, 3 aggiornate, 2 avvii); coppie con tre account finti: a-b, a-c, b-c. **Non provato:** la sincronizzazione automatica reale all'avvio sulle schede vere, la conferma con l'app aperta, il Ripristina di Aggiorna/Archivia.
+- **Rollback:** tornare alla versione precedente dello script (`Sposta-SessioniClaude_v1.9_2026-11-26_0926.ps1`, in locale) o avviare con `-NoSincAvvio`; un'operazione già fatta si annulla con **Ripristina...** e il suo registro.
 
 ## v1.9 — 2026-11-26 09:26
 - **Sincronizzazione sulla scheda più recente.** Prima: una sessione presente in due account ha due schede; usandola con un solo account si aggiorna solo la sua (data, titolo, turni completati, ultima risposta), l'altra resta indietro (sul PC dell'utente: 12 sessioni su 30 con data diversa, fino a 25 giorni di scarto, es. «APK nativa Tab2Monitor per GT-P5100» 30/10 → 25/11). Ora: pulsante **Sincronizza alla più recente** (e `-SincRecenti` da riga di comando con `-Da`/`-A`): per ogni sessione presente in entrambi gli account la scheda con ultima attività più vecchia riceve i campi di avanzamento di quella più recente.
